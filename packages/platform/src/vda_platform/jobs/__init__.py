@@ -1,6 +1,7 @@
 """Durable job ledger ports and lease/fence contracts."""
 
 from .ledger import Job, JobError, JobLedger, JobState
+from .postgres_worker import PostgresControlWorker
 from .repository import (
     EffectRecord,
     PostgresRuntimeRepository,
@@ -19,6 +20,7 @@ __all__ = [
     "JobOutcome",
     "JobState",
     "PostgresRuntimeRepository",
+    "PostgresControlWorker",
     "RunLease",
     "RuntimeRepositoryError",
     "RetryableJobError",

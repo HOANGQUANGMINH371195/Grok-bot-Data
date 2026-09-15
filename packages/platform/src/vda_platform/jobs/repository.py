@@ -385,10 +385,12 @@ class PostgresRuntimeRepository:
             }
         )
 
-    def complete(self, lease: RunLease, result_ref: str, *, now: datetime | None = None) -> None:
+    def complete(
+        self, lease: RunLease, result_ref: str, *, now: datetime | None = None
+    ) -> RunLease:
         if not result_ref:
             raise RuntimeRepositoryError("result_ref is required")
-        self._transition(lease, RunState.COMPLETED, result_ref=result_ref, now=now)
+        return self._transition(lease, RunState.COMPLETED, result_ref=result_ref, now=now)
 
     def fail(
         self,
@@ -397,10 +399,10 @@ class PostgresRuntimeRepository:
         *,
         retryable: bool,
         now: datetime | None = None,
-    ) -> None:
+    ) -> RunLease:
         if not error_code:
             raise RuntimeRepositoryError("error_code is required")
-        self._transition(
+        return self._transition(
             lease,
             RunState.QUEUED if retryable else RunState.FAILED,
             error_code=error_code,
