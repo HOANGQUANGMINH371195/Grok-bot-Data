@@ -19,3 +19,9 @@ def test_fixture_policy_rejects_unbounded_inputs_and_human_authority() -> None:
     policy = json.loads((ROOT / "fixtures/policies/default.json").read_text())
     assert policy["max_file_bytes"] == 256 * 1024 * 1024
     assert "human_approval" in policy["deny"]
+
+
+def test_decimal_fixture_keeps_exact_values_as_strings_until_typed_conversion() -> None:
+    fixture = json.loads((ROOT / "fixtures/data/decimal_nulls.json").read_text())
+    assert fixture["columns"]["amount"] == ["10.50", None, "0.00", "-1.25"]
+    assert fixture["expected"]["amount_sum"] == "9.25"

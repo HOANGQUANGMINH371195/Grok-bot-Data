@@ -1,0 +1,9 @@
+{
+  "fixture_version": "v1",
+  "columns": {
+    "amount": ["10.50", null, "0.00", "-1.25"],
+    "ratio": ["0.125", null, "1.000", "-0.500"]
+  },
+  "numeric_representation": "decimal-string-before-typed-conversion",
+  "expected": {"amount_sum": "9.25", "amount_nulls": 1, "ratio_nulls": 1}
+}
