@@ -1,0 +1,5 @@
+environment: demo
+aws_region: "REPLACE_WITH_APPROVED_REGION"
+image_tag: "REPLACE_WITH_SIGNED_IMAGE_DIGEST"
+demo_url: "https://REPLACE_WITH_APPROVED_DOMAIN"
+budget_reference: "REPLACE_WITH_APPROVED_BUDGET_ID"

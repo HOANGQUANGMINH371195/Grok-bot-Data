@@ -1,0 +1,11 @@
+schema: v1
+runtime:
+  python: "3.13"
+  node: "24"
+  pnpm: "10"
+services:
+  postgres: "17"
+  redis: "7"
+  airflow: "3"
+images:
+  note: "Patch versions and immutable digests are resolved by M0 compatibility CI before deployment."

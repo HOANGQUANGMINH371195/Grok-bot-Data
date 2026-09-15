@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["aws_region", "environment", "image_tag"],
+  "additionalProperties": false,
+  "properties": {
+    "aws_region": { "type": "string", "pattern": "^[a-z]{2}(-gov)?-[a-z]+-[0-9]+$" },
+    "environment": { "enum": ["local", "demo"] },
+    "image_tag": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "demo_url": { "type": "string", "format": "uri" },
+    "budget_reference": { "type": "string", "minLength": 1 }
+  }
+}
