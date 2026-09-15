@@ -1,0 +1,38 @@
+{
+  "task_id": "M0-02",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "PASS",
+  "owner": "Codex",
+  "reviewer": "pending human review",
+  "git_commit": "97283e6",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "node": "24.18.0",
+    "uv": "0.11.31",
+    "pnpm": "10.15.0"
+  },
+  "commands": [
+    {"command": "node scripts/verify-implement.mjs", "exit_code": 0},
+    {"command": "make doctor", "exit_code": 0},
+    {"command": "make contracts-check", "exit_code": 0},
+    {"command": "make bootstrap", "exit_code": 0},
+    {"command": "corepack pnpm --filter @vda-agent/web build", "exit_code": 0},
+    {"command": "make test-unit", "exit_code": 0},
+    {"command": "make lint", "exit_code": 0},
+    {"command": "make typecheck", "exit_code": 0}
+  ],
+  "environment": "local; no cloud apply; no provider calls",
+  "started_at": "2026-09-15T14:51:08-04:00",
+  "ended_at": "2026-09-15T14:51:08-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "Makefile", "sha256": "ee2ff164f36101e5f1eb5287035f5f092398f938aa895afffaea685b42b43d96"},
+    {"path_or_uri": "uv.lock", "sha256": "9b7bb1aa4c761b3b98293a559d210ffee4456ba6ffe0a669e85f6d61abb5b611"},
+    {"path_or_uri": "pnpm-lock.yaml", "sha256": "d7d252ecbfef54934a1e500aced2ed80dd935da271ea1e43a7b94b923a0f02d0"}
+  ],
+  "limitations": [
+    "M0-01 protected branch and trusted CI baseline remain unconfigured.",
+    "M0-03 machine schemas, generated clients and migration chain are not complete.",
+    "Receipt is pending independent human review."
+  ]
+}
