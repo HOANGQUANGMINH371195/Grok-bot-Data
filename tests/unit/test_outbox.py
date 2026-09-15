@@ -1,5 +1,4 @@
 import pytest
-
 from vda_platform.conversation import ConversationOutbox, ConversationState
 
 
