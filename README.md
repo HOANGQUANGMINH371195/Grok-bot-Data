@@ -29,7 +29,7 @@ OIDC/API integration is an M1 implementation lane.
 The guarded local API contract harness can be run separately:
 
 ```bash
-VDA_LOCAL_DEMO=true PYTHONPATH=services/api/src:packages/platform/src \
+VDA_LOCAL_DEMO=true PYTHONPATH=services/api/src:packages/platform/src:packages/adapters/src \
   uv run uvicorn vda_api.main:app --reload --port 8080
 ```
 
