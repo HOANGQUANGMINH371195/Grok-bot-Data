@@ -4,7 +4,7 @@
   "status": "BLOCKED",
   "owner": "Codex",
   "reviewer": "pending Data/QA review",
-  "git_commit": "60ae3a49d5cf14f0668cb031a7dfef82c28cc0dd",
+  "git_commit": "c978372d0602cbbe67f3163bd22617c75f3c5c95",
   "image_config_fixture_versions": {
     "python": "3.13.14",
     "pyarrow": "23.0.1",
