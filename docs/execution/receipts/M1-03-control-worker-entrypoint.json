@@ -1,0 +1,38 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core/Security review",
+  "git_commit": "b69923cf68d9d7fcc2f41c05c40218037e125ace",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "postgres": "17.5-alpine",
+    "runtime_schema": "0005_runtime_tenant_fks",
+    "worker": "postgres-control-worker-v1"
+  },
+  "commands": [
+    {"command": "uv run python -m ruff check services/control_worker tests/unit/test_control_worker_entrypoint.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages services", "exit_code": 0},
+    {"command": "uv run python -m pytest tests/unit/test_control_worker_entrypoint.py", "exit_code": 0},
+    {"command": "PYTHONPATH=services/control_worker/src:packages/platform/src uv run python -m vda_control_worker (missing config fail-closed check)", "exit_code": 2},
+    {"command": "docker build --check -f services/api/Dockerfile .", "exit_code": 0},
+    {"command": "node scripts/verify-implement.mjs", "exit_code": 0}
+  ],
+  "environment": "local; synthetic worker settings only; no database/provider/AWS calls; Dockerfile static check only",
+  "started_at": "2026-09-15T19:16:00-04:00",
+  "ended_at": "2026-09-15T19:28:52-04:00",
+  "exit_codes": [0, 0, 0, 2, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "services/control_worker/src/vda_control_worker/main.py", "sha256": "0f0b87633ed4e097bc866762270ca1f0a18167a047611d3a0a70a74e7817a815"},
+    {"path_or_uri": "services/control_worker/src/vda_control_worker/__main__.py", "sha256": "7dd03541605ee4b357d1f6ed6895dad7e770121ae0ff8b12ff95278da6a370ca"},
+    {"path_or_uri": "tests/unit/test_control_worker_entrypoint.py", "sha256": "1aa241ff10eaf32eead531b2a85a4af1ee4f9c97a111e17918c7421dd563ee23"},
+    {"path_or_uri": "services/api/Dockerfile", "sha256": "c76a7e3a4caebe1bba882c63aaef888c1e4ee99a59133f20c0851cc8001d8d18"},
+    {"path_or_uri": "scripts/doctor.mjs", "sha256": "8c851af5ef12a23222845bd637bcd27e46ac0712a06309a06d70825452f3001f"}
+  ],
+  "limitations": [
+    "The entrypoint uses a configured module:callable handler and refuses to start when disabled or incomplete; no task-domain handler is fabricated.",
+    "M1-03 remains BLOCKED: unknown external-effect reconciliation, durable run-event journal integration, kill/restart drill, supervisor/deployment review and independent Runtime/Core/Security review remain pending.",
+    "No database connection, provider call, AWS provisioning or production migration was performed."
+  ]
+}
