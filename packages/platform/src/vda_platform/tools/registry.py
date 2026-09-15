@@ -74,6 +74,12 @@ class ToolRegistry:
             self._effects[key] = result
         return result
 
+    def allowed_tools(self, bot_template: str) -> tuple[str, ...]:
+        """Return the closed tool catalog visible to one template."""
+        return tuple(
+            sorted(spec.tool_id for spec in self._specs.values() if bot_template in spec.grants)
+        )
+
     @staticmethod
     def _validate(spec: _ToolSpec, payload: dict[str, Any]) -> None:
         if not isinstance(payload, dict):
