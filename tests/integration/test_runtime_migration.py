@@ -12,7 +12,8 @@ def test_runtime_schema_is_migrated_and_force_rls_is_enabled() -> None:
     if not url:
         pytest.skip("VDA_TEST_DATABASE_URL is required for PostgreSQL integration")
 
-    with psycopg.connect(url) as connection, connection.cursor() as cursor:
+    psycopg_url = url.replace("postgresql+psycopg://", "postgresql://", 1)
+    with psycopg.connect(psycopg_url) as connection, connection.cursor() as cursor:
         cursor.execute("SELECT version_num FROM alembic_version")
         assert cursor.fetchone() == ("0004_runtime",)
         cursor.execute(
