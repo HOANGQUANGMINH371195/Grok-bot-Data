@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     DateTime,
@@ -118,3 +119,80 @@ class OutboxEvent(Base):
     event_type: Mapped[str] = mapped_column(String(128), nullable=False)
     payload_json: Mapped[str] = mapped_column(Text, nullable=False)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    kind: Mapped[str] = mapped_column(String(128), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    payload_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    root_task_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    parent_task_id: Mapped[str | None] = mapped_column(ForeignKey("tasks.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class RunRecord(Base):
+    __tablename__ = "runs"
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    conversation_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    bot_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    state: Mapped[str] = mapped_column(String(32), nullable=False)
+    lease_owner: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    fence: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    checkpoint_revision: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    checkpoint_json: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    wait_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    result_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    supersedes_run_id: Mapped[str | None] = mapped_column(ForeignKey("runs.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AttemptRecord(Base):
+    __tablename__ = "attempts"
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id"), nullable=False)
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    worker_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    fence: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    state: Mapped[str] = mapped_column(String(32), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ToolExecution(Base):
+    __tablename__ = "tool_executions"
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id"), nullable=False)
+    attempt_id: Mapped[str] = mapped_column(ForeignKey("attempts.id"), nullable=False)
+    operation_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    tool_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    tool_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    effect_class: Mapped[str] = mapped_column(String(32), nullable=False)
+    state: Mapped[str] = mapped_column(String(32), nullable=False)
+    input_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    output_json: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class EffectRecord(Base):
+    __tablename__ = "effects"
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id"), nullable=False)
+    attempt_id: Mapped[str] = mapped_column(ForeignKey("attempts.id"), nullable=False)
+    operation_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    state: Mapped[str] = mapped_column(String(32), nullable=False)
+    result_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
