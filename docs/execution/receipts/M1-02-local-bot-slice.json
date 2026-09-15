@@ -1,0 +1,32 @@
+{
+  "task_id": "M1-02",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Core/Web review",
+  "git_commit": "579ad09d39078650d6287b5cfaba7203afd348a9",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "api": "local-demo-v1",
+    "provider": "deterministic-fake"
+  },
+  "commands": [
+    {"command": "uv run python -m pytest tests/unit/test_api_application.py tests/unit/test_outbox.py tests/contract/test_api_routes.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check packages/platform packages/adapters services/api tests", "exit_code": 0},
+    {"command": "uv run python -m mypy packages services", "exit_code": 0}
+  ],
+  "environment": "local; VDA_LOCAL_DEMO guarded; no live model/provider, cloud or database calls",
+  "started_at": "2026-09-15T15:58:30-04:00",
+  "ended_at": "2026-09-15T15:58:30-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "services/api/src/vda_api/application.py", "sha256": "c6c4c6c9d3a650d902c618740af05eccc69186b6bb5b6c70550b4f575609eb62"},
+    {"path_or_uri": "services/api/src/vda_api/main.py", "sha256": "f81661abe10c4e033adfadf6c908a6d22beb484632b946c2d7ea5e17d38168e7"},
+    {"path_or_uri": "packages/platform/src/vda_platform/conversation/outbox.py", "sha256": "313cdca25014d0947d72c60eafbb343302caff2cf719e9b2f4d6ba6820f9cd3d"},
+    {"path_or_uri": "tests/contract/test_api_routes.py", "sha256": "48bb4d336b564e6e93fbde0ab2874af373a9e92345d520e9578e819cc675ebb7"}
+  ],
+  "limitations": [
+    "This covers a guarded local human→bot turn and durable bot message only; production OIDC/DB/WS/reconnect and worker dispatch remain pending.",
+    "No live OpenAI/Anthropic call is made; provider selection remains governed by the open change request."
+  ]
+}
