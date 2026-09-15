@@ -1,0 +1,26 @@
+{
+  "task_id": "M1-07",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Security review",
+  "git_commit": "791dc54154c05f0f02c645888c278eb44582892b",
+  "image_config_fixture_versions": {"python": "3.13.14", "journal": "metadata-only-v1"},
+  "commands": [
+    {"command": "uv run python -m pytest tests/unit/test_observatory.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check packages/platform tests/unit/test_observatory.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform", "exit_code": 0}
+  ],
+  "environment": "local; in-memory journal; no raw prompt/content/secret capture",
+  "started_at": "2026-09-15T16:03:30-04:00",
+  "ended_at": "2026-09-15T16:03:30-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "packages/platform/src/vda_platform/observatory/journal.py", "sha256": "ce3288b21ec36b4498ff78d036ddd63be2b295ebf71012f5d12de03efc0a2d15"},
+    {"path_or_uri": "tests/unit/test_observatory.py", "sha256": "5d7b846da0c8b5d2de444b7c6cd2fd93ee88e4e37cb5b20378cf51c7813a50cd"}
+  ],
+  "limitations": [
+    "Journal persistence/read models, primary ACL integration and Observatory API/UI remain pending.",
+    "Receipt covers metadata boundary/idempotency only; it is not an end-to-end Observatory PASS."
+  ]
+}
