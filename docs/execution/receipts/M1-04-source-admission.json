@@ -1,0 +1,32 @@
+{
+  "task_id": "M1-04",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Data/Platform review",
+  "git_commit": "4b4b6c15f3c9fb2d4b0ff8fd28edbb29a1643830",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "pyarrow": "22.0.0",
+    "source_registry": "v1",
+    "fixture": "flat_small.parquet/v1"
+  },
+  "commands": [
+    {"command": "uv run python -m pytest tests/unit/test_source_registry.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check packages/data_profiling tests/unit/test_source_registry.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/data_profiling", "exit_code": 0}
+  ],
+  "environment": "local; in-memory object-store port; no cloud apply; no S3 credentials or provider calls",
+  "started_at": "2026-09-15T15:43:51-04:00",
+  "ended_at": "2026-09-15T15:43:51-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "packages/data_profiling/src/vda_data/ingestion/sources.py", "sha256": "de578e33eaed4983822673dd911a98d7392f0abfbf93898cc9b07f309a4751c4"},
+    {"path_or_uri": "packages/data_profiling/src/vda_data/ingestion/__init__.py", "sha256": "108a1de0b95c5c8c46a5fffe3295664943c77d3de67a78a1199648025e7406d5"},
+    {"path_or_uri": "tests/unit/test_source_registry.py", "sha256": "7f294cb7b750272daf1940038600e25c2fb45444c9289ea12d73d33016d84374"}
+  ],
+  "limitations": [
+    "This is the offline admission/ACL contract; PostgreSQL persistence, signed upload sessions, API routes and real S3 integration remain pending.",
+    "M1-01 identity/resource-grant dependencies and approved AWS bindings are not complete, so M1-04 cannot be marked PASS."
+  ]
+}
