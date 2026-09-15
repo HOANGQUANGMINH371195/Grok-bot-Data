@@ -1,0 +1,31 @@
+{
+  "task_id": "M0-04",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Data/QA fixture review",
+  "git_commit": "77408ec56ee7059e1216a07b1497c11783cc4bfa",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "fixture_set": "R1-v1",
+    "parquet_sha256": "9fadeb1287486298247ab5974f35c537aecfb75380dea56f0cc382fc45005ec4"
+  },
+  "commands": [
+    {"command": "uv run python -m pytest tests/unit/test_fixtures.py tests/unit/test_parquet_ingestion.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check tests/unit/test_fixtures.py", "exit_code": 0}
+  ],
+  "environment": "local; synthetic fixtures only; no provider/cloud calls",
+  "started_at": "2026-09-15T16:26:00-04:00",
+  "ended_at": "2026-09-15T16:27:00-04:00",
+  "exit_codes": [0, 0],
+  "artifacts": [
+    {"path_or_uri": "tests/fixtures/data/adversarial.csv", "sha256": "5d7e680dbaab099d6d02aaddb82c37da22faf241ff8bcea43c6b9b2e2bad029d"},
+    {"path_or_uri": "tests/unit/test_fixtures.py", "sha256": "8e664df945414afc0d6536de44d4b1fa48be45ccafcd9399e56d53a4030f412f"},
+    {"path_or_uri": "tests/fixtures/README.md", "sha256": "a6684627f7a4e20e57049c55ce969f3a2468b4f2282d361c1598c14ce2fd8f8e"}
+  ],
+  "limitations": [
+    "Fixture tests now cover UTF-8/multiline CSV, formula/template adversarial values as inert data, PII email classification, Decimal/null expectations, all eight quality-rule keys and fake-provider failure cases.",
+    "M0-04 remains BLOCKED pending independent Data/QA review, broader malformed/bomb/provider/policy golden sign-off and receipt artifact hash review.",
+    "All inputs are synthetic; this receipt does not authorize live model calls or real PII."
+  ]
+}
