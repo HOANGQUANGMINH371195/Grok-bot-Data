@@ -1,0 +1,34 @@
+{
+  "task_id": "M1-02",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Core/Web review",
+  "git_commit": "33462f1",
+  "image_config_fixture_versions": {
+    "api": "local-demo-v1",
+    "provider": "fake-grounded-v1",
+    "port": "18081 loopback"
+  },
+  "commands": [
+    {"command": "curl GET /healthz", "exit_code": 0},
+    {"command": "curl GET /readyz with VDA_LOCAL_DEMO=true", "exit_code": 0},
+    {"command": "curl POST /v1/local/workspaces/demo/conversations", "exit_code": 0},
+    {"command": "curl POST /v1/local/conversations/smoke-room/bot-turn", "exit_code": 0},
+    {"command": "curl GET /v1/local/conversations/smoke-room/events?after_seq=0", "exit_code": 0},
+    {"command": "SIGINT uvicorn and observe clean shutdown", "exit_code": 0}
+  ],
+  "environment": "loopback local process; in-memory state; synthetic identity; no cloud/provider calls",
+  "started_at": "2026-09-15T16:01:00-04:00",
+  "ended_at": "2026-09-15T16:01:20-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "services/api/src/vda_api/application.py", "sha256": "2803e35c70959900941875172eb2da5abe296849a25eeffb83195b574575481a"},
+    {"path_or_uri": "services/api/src/vda_api/main.py", "sha256": "0a8d83ea3412370fc89b524f714a50b2d11c5bc12cc824f3fb6eb54bb29476be"},
+    {"path_or_uri": "README.md", "sha256": "e45308267f26f11095137ff6100335a3f04c0161bb3242ab04ec06e50eb203ce"}
+  ],
+  "limitations": [
+    "Local API process is intentionally in-memory and not a deployment persistence test.",
+    "Production OIDC/DB/WS/reconnect and worker integration remain blocked by M1 dependencies and review."
+  ]
+}
