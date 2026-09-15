@@ -310,6 +310,37 @@ class PostgresRuntimeRepository:
                 raise FenceError("stale or non-owner worker")
         return RunLease(**{**lease.__dict__, "lease_expires_at": expiry})
 
+    def resume_run(
+        self,
+        *,
+        workspace_id: str,
+        run_id: str,
+        now: datetime | None = None,
+    ) -> None:
+        """Wake a waiting run without holding a worker lease or transaction."""
+        self._required(workspace_id, run_id)
+        timestamp = _utc(now or datetime.now(UTC))
+        with self._engine.begin() as connection:
+            _scope(connection, workspace_id)
+            result = connection.execute(
+                text(
+                    """
+                    UPDATE runs
+                    SET state = 'queued', lease_owner = NULL, lease_expires_at = NULL,
+                        wait_reason = NULL, error_code = NULL, updated_at = :updated_at
+                    WHERE id = :run_id AND workspace_id = :workspace_id
+                      AND state = 'waiting'
+                    """
+                ),
+                {
+                    "updated_at": timestamp,
+                    "run_id": run_id,
+                    "workspace_id": workspace_id,
+                },
+            )
+            if result.rowcount != 1:
+                raise RuntimeRepositoryError("run is not waiting or is not visible")
+
     def checkpoint(
         self,
         lease: RunLease,

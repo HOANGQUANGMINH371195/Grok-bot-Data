@@ -64,6 +64,9 @@ def test_postgres_runtime_claim_fence_checkpoint_and_effect_idempotency() -> Non
     checkpointed = repository.checkpoint(running, {"page": 2}, now=NOW)
     assert checkpointed.checkpoint_revision == 1
     assert checkpointed.checkpoint == {"page": 2}
+    waiting = repository.wait(checkpointed, "approval", now=NOW)
+    assert waiting.state is RunState.WAITING
+    repository.resume_run(workspace_id=workspace_id, run_id=run_id, now=NOW)
     execution = repository.record_tool_execution(
         workspace_id=workspace_id,
         run_id=run_id,
