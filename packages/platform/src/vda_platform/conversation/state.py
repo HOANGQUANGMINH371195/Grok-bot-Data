@@ -48,6 +48,12 @@ class ConversationState:
     def messages(self) -> tuple[Message, ...]:
         return tuple(self._messages)
 
+    def is_active_member(self, principal_id: str) -> bool:
+        return self._active_interval(principal_id) is not None
+
+    def idempotent_message(self, sender_id: str, client_message_id: str) -> Message | None:
+        return self._idempotency.get((sender_id, client_message_id))
+
     def add_member(self, principal_id: str) -> MemberInterval:
         if self._active_interval(principal_id) is not None:
             raise MembershipError("principal already active")
@@ -68,6 +74,8 @@ class ConversationState:
 
     def visible_messages(self, principal_id: str) -> tuple[Message, ...]:
         intervals = self._members.get(principal_id, [])
+        if self._active_interval(principal_id) is None:
+            raise MembershipError("principal is not an active member")
         visible_from = max((interval.joined_at_seq for interval in intervals), default=None)
         if visible_from is None:
             raise MembershipError("principal is not a member")
