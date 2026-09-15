@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = new URL('../', import.meta.url);
 const registry = JSON.parse(readFileSync(new URL('packages/contracts/tools/v1/registry.json', root), 'utf8'));
+const schemas = JSON.parse(readFileSync(new URL('packages/contracts/tools/v1/schemas.json', root), 'utf8'));
+const generated = readFileSync(new URL('packages/contracts/generated/ts/tool_ids.ts', root), 'utf8');
 const expected = {
   DataAssistant: [
     'catalog.search','catalog.describe','user.ask','runtime.status','memory.search','memory.read','memory.write','memory.forget','scratchpad.read','scratchpad.write','evidence.get','lineage.get','dataset.list','artifact.describe','profile.get','metadata.read','execution.get','agent.subtask','agent.message','agent.handoff','schedule.list'
@@ -20,6 +22,26 @@ const expected = {
 const forbidden = /(^|\.)(shell|sql|http|kubectl|secret|approve|publish)(\.|$)/i;
 const errors = [];
 if (Object.keys(registry.tools).length !== 44) errors.push(`expected 44 tools, found ${Object.keys(registry.tools).length}`);
+if (Object.keys(schemas.tools).length !== 44) errors.push(`expected 44 tool schemas, found ${Object.keys(schemas.tools).length}`);
+if (!schemas.output?.required?.includes('status')) errors.push('output contract must require status');
+for (const [id, spec] of Object.entries(schemas.tools)) {
+  if (!registry.tools[id]) errors.push(`schema has unknown tool: ${id}`);
+  if (!schemas.profiles[spec.input]) errors.push(`${id} references missing input profile ${spec.input}`);
+  if (!['read', 'write', 'enqueue'].includes(spec.effect)) errors.push(`${id} has invalid effect`);
+}
+for (const id of Object.keys(registry.tools)) if (!schemas.tools[id]) errors.push(`registry tool has no schema: ${id}`);
+const generatedIds = [...generated.matchAll(/'([^']+)'/g)].map((match) => match[1]);
+if (generatedIds.length !== 44 || new Set(generatedIds).size !== 44) errors.push('generated TypeScript tool ID union is not exactly 44 unique IDs');
+for (const id of Object.keys(registry.tools)) if (!generatedIds.includes(id)) errors.push(`generated TypeScript client missing ${id}`);
+for (const template of Object.keys(expected)) {
+  const folder = template.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+  const manifest = JSON.parse(readFileSync(new URL(`packages/bot_templates/${folder}/manifest.json`, root), 'utf8'));
+  const expectedTools = [...expected[template]].sort();
+  const actualTools = [...manifest.invoke_tools].sort();
+  if (manifest.template !== template) errors.push(`${template} manifest identity mismatch`);
+  if (JSON.stringify(actualTools) !== JSON.stringify(expectedTools)) errors.push(`${template} manifest grants mismatch`);
+  if (manifest.caps?.max_context_tokens !== 32000 || manifest.delegation?.max_depth !== 1) errors.push(`${template} execution caps mismatch`);
+}
 for (const [template, tools] of Object.entries(expected)) {
   const actual = Object.entries(registry.tools).filter(([, spec]) => spec.grants.includes(template)).map(([id]) => id).sort();
   const expectedSorted = [...tools].sort();

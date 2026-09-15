@@ -1,0 +1,100 @@
+{
+  "version": "v1",
+  "profiles": {
+    "read": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resource_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "cursor": {"type": "string", "maxLength": 512},
+        "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+      }
+    },
+    "memory_write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversation_id", "content", "expected_revision", "source_refs"],
+      "properties": {
+        "conversation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "content": {"type": "string", "minLength": 1, "maxLength": 32768},
+        "expected_revision": {"type": "integer", "minimum": 0},
+        "source_refs": {"type": "array", "maxItems": 16, "items": {"type": "string", "minLength": 1, "maxLength": 256}}
+      }
+    },
+    "collaboration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversation_id", "target_bot_id", "message", "idempotency_key"],
+      "properties": {
+        "conversation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "target_bot_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "message": {"type": "string", "minLength": 1, "maxLength": 12000},
+        "task_ref": {"type": "string", "maxLength": 256},
+        "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "data_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspace_id", "resource_id", "idempotency_key"],
+      "properties": {
+        "workspace_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "resource_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "plan_id": {"type": "string", "maxLength": 256},
+        "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analysis_id", "idempotency_key"],
+      "properties": {
+        "analysis_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "plan_id": {"type": "string", "maxLength": 256},
+        "chart_type": {"enum": ["bar", "line", "histogram"]},
+        "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report_id", "idempotency_key"],
+      "properties": {
+        "report_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "snapshot_id": {"type": "string", "maxLength": 256},
+        "patch": {"type": "string", "maxLength": 32768},
+        "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspace_id"],
+      "properties": {
+        "workspace_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "schedule_id": {"type": "string", "maxLength": 256},
+        "idempotency_key": {"type": "string", "maxLength": 256}
+      }
+    }
+  },
+  "tools": {
+    "catalog.search": {"input": "read", "effect": "read"}, "catalog.describe": {"input": "read", "effect": "read"}, "user.ask": {"input": "read", "effect": "read"}, "runtime.status": {"input": "read", "effect": "read"},
+    "memory.search": {"input": "read", "effect": "read"}, "memory.read": {"input": "read", "effect": "read"}, "memory.write": {"input": "memory_write", "effect": "write"}, "memory.forget": {"input": "memory_write", "effect": "write"},
+    "scratchpad.read": {"input": "read", "effect": "read"}, "scratchpad.write": {"input": "memory_write", "effect": "write"}, "evidence.get": {"input": "read", "effect": "read"}, "lineage.get": {"input": "read", "effect": "read"},
+    "dataset.list": {"input": "read", "effect": "read"}, "artifact.describe": {"input": "read", "effect": "read"}, "profile.get": {"input": "read", "effect": "read"}, "metadata.read": {"input": "read", "effect": "read"}, "execution.get": {"input": "read", "effect": "read"},
+    "agent.subtask": {"input": "collaboration", "effect": "enqueue"}, "agent.message": {"input": "collaboration", "effect": "enqueue"}, "agent.handoff": {"input": "collaboration", "effect": "enqueue"},
+    "ingestion.import": {"input": "data_request", "effect": "enqueue"}, "profile.start": {"input": "data_request", "effect": "enqueue"}, "metadata.propose": {"input": "data_request", "effect": "enqueue"}, "quality.evaluate": {"input": "data_request", "effect": "enqueue"}, "pipeline.request": {"input": "data_request", "effect": "enqueue"}, "pipeline.status": {"input": "read", "effect": "read"},
+    "analysis.open": {"input": "analysis", "effect": "write"}, "analysis.revise": {"input": "analysis", "effect": "write"}, "analysis.plan": {"input": "analysis", "effect": "write"}, "analysis.preview": {"input": "analysis", "effect": "enqueue"}, "analysis.official": {"input": "analysis", "effect": "enqueue"}, "chart.create": {"input": "analysis", "effect": "enqueue"}, "drift.compare": {"input": "analysis", "effect": "enqueue"}, "statistics.run": {"input": "analysis", "effect": "enqueue"},
+    "report.read": {"input": "read", "effect": "read"}, "report.create": {"input": "report", "effect": "write"}, "report.patch": {"input": "report", "effect": "write"}, "report.snapshot": {"input": "report", "effect": "write"}, "report.request_submit": {"input": "report", "effect": "enqueue"}, "report.export_draft": {"input": "report", "effect": "enqueue"}, "report.export_published": {"input": "report", "effect": "enqueue"},
+    "schedule.propose": {"input": "schedule", "effect": "enqueue"}, "schedule.list": {"input": "schedule", "effect": "read"}, "schedule.cancel": {"input": "schedule", "effect": "enqueue"}
+  },
+  "output": {
+    "type": "object",
+    "required": ["status"],
+    "properties": {
+      "status": {"enum": ["ok", "queued", "needs_approval", "needs_input", "denied", "failed"]},
+      "data": {}, "job_ref": {"type": "string"}, "evidence_refs": {"type": "array", "maxItems": 32, "items": {"type": "string"}}, "limitations": {"type": "array", "maxItems": 32, "items": {"type": "string"}}, "error": {"type": "string", "maxLength": 2000}
+    },
+    "additionalProperties": false
+  }
+}
