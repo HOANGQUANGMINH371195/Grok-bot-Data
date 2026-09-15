@@ -36,6 +36,8 @@ def healthz() -> dict[str, str]:
 
 @app.get("/readyz", include_in_schema=False)
 def readyz() -> dict[str, str]:
+    if _local_demo_enabled():
+        return {"status": "ready", "mode": "local_demo"}
     return {"status": "not_ready", "reason": "M1 dependencies are not configured"}
 
 
