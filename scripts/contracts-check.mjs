@@ -8,6 +8,7 @@ const generated = readFileSync(new URL('packages/contracts/generated/ts/tool_ids
 const events = JSON.parse(readFileSync(new URL('packages/contracts/events/v1.json', root), 'utf8'));
 const cards = JSON.parse(readFileSync(new URL('packages/contracts/cards/v1.json', root), 'utf8'));
 const protocol = JSON.parse(readFileSync(new URL('packages/contracts/protocol/v1.json', root), 'utf8'));
+const openapi = readFileSync(new URL('packages/contracts/openapi/v1.yaml', root), 'utf8');
 const expected = {
   DataAssistant: [
     'catalog.search','catalog.describe','user.ask','runtime.status','memory.search','memory.read','memory.write','memory.forget','scratchpad.read','scratchpad.write','evidence.get','lineage.get','dataset.list','artifact.describe','profile.get','metadata.read','execution.get','agent.subtask','agent.message','agent.handoff','schedule.list'
@@ -24,6 +25,14 @@ const expected = {
 };
 const forbidden = /(^|\.)(shell|sql|http|kubectl|secret|approve|publish)(\.|$)/i;
 const errors = [];
+for (const path of [
+  '/v1/local/workspaces/{workspace_id}/conversations:',
+  '/v1/local/conversations/{conversation_id}/messages:',
+  '/v1/local/conversations/{conversation_id}/events:',
+  '/v1/local/conversations/{conversation_id}/bot-turn:',
+]) {
+  if (!openapi.includes(path)) errors.push(`OpenAPI contract missing ${path.slice(0, -1)}`);
+}
 if (Object.keys(registry.tools).length !== 44) errors.push(`expected 44 tools, found ${Object.keys(registry.tools).length}`);
 if (Object.keys(schemas.tools).length !== 44) errors.push(`expected 44 tool schemas, found ${Object.keys(schemas.tools).length}`);
 if (!schemas.output?.required?.includes('status')) errors.push('output contract must require status');

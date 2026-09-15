@@ -15,3 +15,131 @@ paths:
       responses:
         '200':
           description: Readiness state (body may report not_ready)
+  /v1/local/workspaces/{workspace_id}/conversations:
+    post:
+      operationId: localCreateConversation
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/WorkspaceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '201':
+          description: In-memory local conversation created
+        '401':
+          description: Synthetic principal header missing
+        '409':
+          description: Invalid or duplicate conversation
+  /v1/local/conversations/{conversation_id}/messages:
+    post:
+      operationId: localSendMessage
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message and durable event committed
+    get:
+      operationId: localReadMessages
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: ACL-filtered messages
+  /v1/local/conversations/{conversation_id}/events:
+    get:
+      operationId: localReadEvents
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/ConversationId'
+        - name: after_seq
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Durable cursor replay and high watermark
+  /v1/local/conversations/{conversation_id}/bot-turn:
+    post:
+      operationId: localRunBotTurn
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BotTurnRequest'
+      responses:
+        '201':
+          description: Bounded fake-provider bot turn result
+components:
+  parameters:
+    PrincipalId:
+      name: X-Principal-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    WorkspaceId:
+      name: workspace_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    ConversationId:
+      name: conversation_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+  schemas:
+    CreateConversationRequest:
+      type: object
+      additionalProperties: false
+      required: [conversation_id, member_ids]
+      properties:
+        conversation_id: {type: string, minLength: 1, maxLength: 256}
+        member_ids:
+          type: array
+          minItems: 1
+          maxItems: 32
+          items: {type: string, minLength: 1, maxLength: 256}
+        bot_templates:
+          type: object
+          maxProperties: 16
+          additionalProperties: {type: string, enum: [DataAssistant, DataSteward, DataAnalyst, ReportWriter]}
+    SendMessageRequest:
+      type: object
+      additionalProperties: false
+      required: [client_message_id, body]
+      properties:
+        client_message_id: {type: string, minLength: 1, maxLength: 256}
+        body: {type: string, minLength: 1, maxLength: 12000}
+    BotTurnRequest:
+      type: object
+      additionalProperties: false
+      required: [bot_id, turn_id]
+      properties:
+        bot_id: {type: string, minLength: 1, maxLength: 256}
+        turn_id: {type: string, minLength: 1, maxLength: 256}
