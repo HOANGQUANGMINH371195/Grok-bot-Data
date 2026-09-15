@@ -1,0 +1,25 @@
+{
+  "task_id": "M0-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Core/Web consumer review",
+  "git_commit": "f64dc7d",
+  "image_config_fixture_versions": {"contract": "openapi-3.1/v1", "tools": "44/v1"},
+  "commands": [
+    {"command": "make contracts-check", "exit_code": 0},
+    {"command": "uv run python -c 'import yaml; yaml.safe_load(open(\"packages/contracts/openapi/v1.yaml\"))'", "exit_code": 0}
+  ],
+  "environment": "local; static contract validation only; no runtime/cloud calls",
+  "started_at": "2026-09-15T16:05:16-04:00",
+  "ended_at": "2026-09-15T16:05:16-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "packages/contracts/openapi/v1.yaml", "sha256": "e16f0f5f4fa9032b2730232bda74aadb51f7bcf0b5f1db457d04fc6c292e9356"},
+    {"path_or_uri": "scripts/contracts-check.mjs", "sha256": "6c5a86720bd07182532d10677869a9afd6e5b4d876f4d76df1151cd476af76fa"}
+  ],
+  "limitations": [
+    "This receipt covers OpenAPI path/schema coverage; generated client, production auth schemas and consumer review remain pending.",
+    "M0-03 is not marked PASS until shared contract/migration owners review all schemas."
+  ]
+}
