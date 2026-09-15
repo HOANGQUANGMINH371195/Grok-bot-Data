@@ -118,6 +118,38 @@ def test_postgres_runtime_claim_fence_checkpoint_and_effect_idempotency() -> Non
         attempt_id=first.attempt_id,
         operation_key="profile:page:2:effect",
     ).effect_id == effect.effect_id
+    with pytest.raises(RuntimeRepositoryError, match="unknown-state"):
+        repository.reconcile_effect(
+            workspace_id=workspace_id,
+            operation_key="profile:page:2:effect",
+            result_ref="artifact:unverified",
+        )
+    unknown = repository.mark_effect_unknown(
+        workspace_id=workspace_id,
+        operation_key="profile:page:2:effect",
+    )
+    assert unknown.state == "unknown"
+    reconciled = repository.reconcile_effect(
+        workspace_id=workspace_id,
+        operation_key="profile:page:2:effect",
+        result_ref="artifact:verified",
+    )
+    assert reconciled.state == "reconciled"
+    assert repository.mark_effect_unknown(
+        workspace_id=workspace_id,
+        operation_key="profile:page:2:effect",
+    ).state == "reconciled"
+    assert repository.reconcile_effect(
+        workspace_id=workspace_id,
+        operation_key="profile:page:2:effect",
+        result_ref="artifact:verified",
+    ) == reconciled
+    with pytest.raises(RuntimeRepositoryError, match="unknown-state"):
+        repository.reconcile_effect(
+            workspace_id=workspace_id,
+            operation_key="profile:page:2:effect",
+            result_ref="artifact:different",
+        )
 
     recovered = repository.claim_run(
         workspace_id=workspace_id,

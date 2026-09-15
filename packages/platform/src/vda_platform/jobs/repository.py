@@ -530,6 +530,95 @@ class PostgresRuntimeRepository:
                 str(row["id"]), str(row["operation_key"]), str(row["state"]), row["result_ref"]
             )
 
+    def mark_effect_unknown(
+        self,
+        *,
+        workspace_id: str,
+        operation_key: str,
+    ) -> EffectRecord:
+        """Fence an interrupted external effect before any recovery decision."""
+
+        self._required(workspace_id, operation_key)
+        with self._engine.begin() as connection:
+            _scope(connection, workspace_id)
+            row = connection.execute(
+                text(
+                    """
+                    UPDATE effects
+                    SET state = 'unknown'
+                    WHERE workspace_id = :workspace_id
+                      AND operation_key = :operation_key
+                      AND state = 'reserved'
+                    RETURNING id, operation_key, state, result_ref
+                    """
+                ),
+                {"workspace_id": workspace_id, "operation_key": operation_key},
+            ).mappings().first()
+            if row is None:
+                row = connection.execute(
+                    text(
+                        "SELECT id, operation_key, state, result_ref FROM effects "
+                        "WHERE workspace_id = :workspace_id AND operation_key = :operation_key"
+                    ),
+                    {"workspace_id": workspace_id, "operation_key": operation_key},
+                ).mappings().first()
+            if row is None:
+                raise RuntimeRepositoryError("effect operation key is not visible")
+            return EffectRecord(
+                str(row["id"]), str(row["operation_key"]), str(row["state"]), row["result_ref"]
+            )
+
+    def reconcile_effect(
+        self,
+        *,
+        workspace_id: str,
+        operation_key: str,
+        result_ref: str,
+    ) -> EffectRecord:
+        """Commit an explicitly verified result for an unknown effect.
+
+        A reserved effect cannot be reconciled directly, which prevents a caller
+        from silently converting an unobserved side effect into a success.
+        Repeating the same reconciliation is idempotent; a different result is
+        rejected for human review.
+        """
+
+        self._required(workspace_id, operation_key, result_ref)
+        with self._engine.begin() as connection:
+            _scope(connection, workspace_id)
+            row = connection.execute(
+                text(
+                    """
+                    UPDATE effects
+                    SET state = 'reconciled', result_ref = :result_ref
+                    WHERE workspace_id = :workspace_id
+                      AND operation_key = :operation_key
+                      AND state = 'unknown'
+                    RETURNING id, operation_key, state, result_ref
+                    """
+                ),
+                {
+                    "workspace_id": workspace_id,
+                    "operation_key": operation_key,
+                    "result_ref": result_ref,
+                },
+            ).mappings().first()
+            if row is None:
+                row = connection.execute(
+                    text(
+                        "SELECT id, operation_key, state, result_ref FROM effects "
+                        "WHERE workspace_id = :workspace_id AND operation_key = :operation_key"
+                    ),
+                    {"workspace_id": workspace_id, "operation_key": operation_key},
+                ).mappings().first()
+            if row is None:
+                raise RuntimeRepositoryError("effect operation key is not visible")
+            if row["state"] != "reconciled" or row["result_ref"] != result_ref:
+                raise RuntimeRepositoryError("effect requires unknown-state reconciliation")
+            return EffectRecord(
+                str(row["id"]), str(row["operation_key"]), str(row["state"]), row["result_ref"]
+            )
+
     def _transition(
         self,
         lease: RunLease,
