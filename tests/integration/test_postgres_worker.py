@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import os
+import time
 from datetime import UTC, datetime, timedelta
+from threading import Event
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -111,4 +114,64 @@ def test_postgres_worker_recovery_before_and_after_commit() -> None:
     assert recovered is not None
     assert recovered.state.value == "completed"
     assert recovered.fence == retry.fence + 1
+
+    loop_task = f"task-{uuid4().hex}"
+    loop_run = f"run-{uuid4().hex}"
+    repository.create_task(
+        workspace_id=workspace_id,
+        task_id=loop_task,
+        kind="profile",
+        payload={},
+        idempotency_key=loop_task,
+        now=NOW,
+    )
+    repository.create_run(
+        workspace_id=workspace_id,
+        run_id=loop_run,
+        task_id=loop_task,
+        now=NOW,
+    )
+    stop_event = Event()
+    loop_worker = PostgresControlWorker(
+        repository,
+        workspace_id=workspace_id,
+        worker_id="worker-loop",
+        handler=lambda _: JobOutcome("artifact:loop"),
+        after_commit=lambda _: stop_event.set(),
+    )
+    assert loop_worker.run_forever(stop_event=stop_event, poll_interval_seconds=0.01) == 1
+
+    heartbeat_task = f"task-{uuid4().hex}"
+    heartbeat_run = f"run-{uuid4().hex}"
+    current = datetime.now(UTC)
+    repository.create_task(
+        workspace_id=workspace_id,
+        task_id=heartbeat_task,
+        kind="profile",
+        payload={},
+        idempotency_key=heartbeat_task,
+        now=current,
+    )
+    repository.create_run(
+        workspace_id=workspace_id,
+        run_id=heartbeat_run,
+        task_id=heartbeat_task,
+        now=current,
+    )
+
+    def slow_handler(_: object) -> JobOutcome:
+        time.sleep(0.15)
+        return JobOutcome("artifact:heartbeat")
+
+    heartbeat_worker = PostgresControlWorker(
+        repository,
+        workspace_id=workspace_id,
+        worker_id="worker-heartbeat",
+        handler=slow_handler,
+        lease_seconds=1,
+        heartbeat_interval_seconds=0.03,
+    )
+    with patch.object(repository, "heartbeat", wraps=repository.heartbeat) as heartbeat:
+        assert heartbeat_worker.run_once(now=current) is not None
+        assert heartbeat.call_count >= 1
     engine.dispose()

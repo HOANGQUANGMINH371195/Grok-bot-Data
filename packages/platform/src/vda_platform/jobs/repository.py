@@ -63,6 +63,10 @@ class PostgresRuntimeRepository:
         self._engine = engine
         self._default_lease_seconds = default_lease_seconds
 
+    @property
+    def lease_seconds(self) -> int:
+        return self._default_lease_seconds
+
     def create_task(
         self,
         *,
