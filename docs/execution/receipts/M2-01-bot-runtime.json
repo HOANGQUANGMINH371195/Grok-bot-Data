@@ -1,0 +1,31 @@
+{
+  "task_id": "M2-01",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Security review",
+  "git_commit": "9c73a136977bc7eea2f504d7812b49f044d5cc50",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "runtime": "bounded-turn-v1",
+    "tool_registry": "44-tools-v1"
+  },
+  "commands": [
+    {"command": "uv run python -m pytest tests/unit/test_bot_runtime.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check packages/platform tests/unit/test_bot_runtime.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform", "exit_code": 0}
+  ],
+  "environment": "local; deterministic fake model; no live provider, cloud or database calls",
+  "started_at": "2026-09-15T15:54:04-04:00",
+  "ended_at": "2026-09-15T15:54:04-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "packages/platform/src/vda_platform/runtime/loop.py", "sha256": "4ae486a9bbbc86fd42978048c638fdf1d219c04b6015089c576d65f8a50de7cd"},
+    {"path_or_uri": "packages/platform/src/vda_platform/tools/registry.py", "sha256": "92eb2bb2310ce645f12905a920f98d33888bf472fbb86c8355e9eb76d50b7caa"},
+    {"path_or_uri": "tests/unit/test_bot_runtime.py", "sha256": "d2707d2cbf569b89844b94a1b7e13254fc32e79ead7d5543210b9c0c4cc76dae"}
+  ],
+  "limitations": [
+    "Runtime currently executes one bounded model turn; durable Run/Attempt persistence, worker lease integration, context CAS and provider approval remain pending.",
+    "M1 identity/conversation dependencies and independent Runtime/Security review are not complete."
+  ]
+}
