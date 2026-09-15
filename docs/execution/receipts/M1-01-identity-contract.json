@@ -1,0 +1,33 @@
+{
+  "task_id": "M1-01",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Leads/Security review",
+  "git_commit": "2987ee143613ad0f29db1ca72a1d4c2603237161",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "postgres": "17",
+    "migration_head": "0003_identity"
+  },
+  "commands": [
+    {"command": "uv run python -m pytest tests/contract/test_migrations.py tests/unit/test_storage_models.py tests/unit/test_identity_directory.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check packages/platform tests/contract/test_migrations.py tests/unit/test_storage_models.py tests/unit/test_identity_directory.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform", "exit_code": 0},
+    {"command": "uv run alembic heads", "exit_code": 0}
+  ],
+  "environment": "local; offline identity aggregate and migration contract checks; no cloud apply",
+  "started_at": "2026-09-15T15:48:19-04:00",
+  "ended_at": "2026-09-15T15:48:19-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "packages/platform/src/vda_platform/identity/directory.py", "sha256": "ec02d11f1d854ad54409e2e85d84efc98a8a38e53dcc2d37bd92caa00f36d643"},
+    {"path_or_uri": "database/migrations/versions/0003_identity.sql", "sha256": "2c560908315ec67a032bae2c89aeb5bbd08412f5df29fb3798c07fb2fd167783"},
+    {"path_or_uri": "packages/platform/src/vda_platform/storage/models.py", "sha256": "64f65b8993eb186d11050489438acd0d2ff042ddc80db6bdf3922cac946db4f1"},
+    {"path_or_uri": "tests/unit/test_identity_directory.py", "sha256": "da7eedfd7486f0e76f24ee3f7a67663e0ee24700bcab28e271f72e1fdf9cc531"}
+  ],
+  "limitations": [
+    "OIDC callback/session runtime, live PostgreSQL RLS integration, API routes and independent review are still pending.",
+    "The migration is validated structurally only; no database mutation was applied in this receipt."
+  ]
+}
