@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from vda_data.ingestion import ParsedCsv
+from vda_data.ingestion import ParsedCsv, ParsedParquet
 
 QUALITY_RULES: tuple[str, ...] = (
     "not_null",
@@ -27,7 +27,7 @@ class QualityResult:
 
 
 def evaluate_quality(
-    source: ParsedCsv,
+    source: ParsedCsv | ParsedParquet,
     *,
     not_null: tuple[str, ...] = (),
     unique: tuple[str, ...] = (),
@@ -58,7 +58,7 @@ def evaluate_quality(
 
 
 def _not_null(
-    source: ParsedCsv, by_name: dict[str, int], columns: tuple[str, ...]
+    source: ParsedCsv | ParsedParquet, by_name: dict[str, int], columns: tuple[str, ...]
 ) -> QualityResult:
     failures = [
         column
@@ -70,7 +70,9 @@ def _not_null(
     )
 
 
-def _unique(source: ParsedCsv, by_name: dict[str, int], columns: tuple[str, ...]) -> QualityResult:
+def _unique(
+    source: ParsedCsv | ParsedParquet, by_name: dict[str, int], columns: tuple[str, ...]
+) -> QualityResult:
     failures: list[str] = []
     for column in columns:
         if column not in by_name:
@@ -85,7 +87,7 @@ def _unique(source: ParsedCsv, by_name: dict[str, int], columns: tuple[str, ...]
 
 
 def _accepted(
-    source: ParsedCsv, by_name: dict[str, int], allowed: dict[str, tuple[str, ...]]
+    source: ParsedCsv | ParsedParquet, by_name: dict[str, int], allowed: dict[str, tuple[str, ...]]
 ) -> QualityResult:
     failures: list[str] = []
     for column, values in allowed.items():
@@ -104,7 +106,7 @@ def _accepted(
 
 
 def _range(
-    source: ParsedCsv, by_name: dict[str, int], bounds: dict[str, tuple[str, str]]
+    source: ParsedCsv | ParsedParquet, by_name: dict[str, int], bounds: dict[str, tuple[str, str]]
 ) -> QualityResult:
     from decimal import Decimal, InvalidOperation
 
@@ -129,7 +131,7 @@ def _range(
     )
 
 
-def _finite(source: ParsedCsv) -> QualityResult:
+def _finite(source: ParsedCsv | ParsedParquet) -> QualityResult:
     from decimal import Decimal, InvalidOperation
 
     invalid = 0
@@ -148,7 +150,10 @@ def _finite(source: ParsedCsv) -> QualityResult:
 
 
 def _freshness(
-    source: ParsedCsv, by_name: dict[str, int], column: str | None, max_age: int | None
+    source: ParsedCsv | ParsedParquet,
+    by_name: dict[str, int],
+    column: str | None,
+    max_age: int | None,
 ) -> QualityResult:
     if column is None or max_age is None:
         return QualityResult("freshness", "not_evaluated", (), {"reason": "no_freshness_policy"})
@@ -170,7 +175,9 @@ def _freshness(
     )
 
 
-def _schema(source: ParsedCsv, expected: tuple[str, ...] | None) -> QualityResult:
+def _schema(
+    source: ParsedCsv | ParsedParquet, expected: tuple[str, ...] | None
+) -> QualityResult:
     if expected is None:
         return QualityResult("schema", "not_evaluated", (), {"reason": "no_expected_schema"})
     status = "pass" if source.headers == expected else "fail"

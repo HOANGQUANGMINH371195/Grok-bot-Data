@@ -1,8 +1,9 @@
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from vda_data.ingestion import IngestionError, IngestionPolicy, parse_csv_bytes
-from vda_data.profiling import METRIC_FAMILIES, profile_csv
+from vda_data.profiling import METRIC_FAMILIES, profile_csv, profile_parquet
 from vda_data.quality import QUALITY_RULES, evaluate_quality
 
 
@@ -22,6 +23,15 @@ def test_profile_has_exact_metric_families_and_finite_decimal_values() -> None:
     assert amount["finite_count"] == 2
     assert amount["invalid_numeric_count"] == 1
     assert Decimal(amount["sum"]) == Decimal("9.25")
+
+
+def test_profile_flat_parquet_uses_the_same_metric_contract() -> None:
+    payload = (Path(__file__).parents[1] / "fixtures/data/flat_small.parquet").read_bytes()
+    result = profile_parquet(payload)
+    assert result.metric_families == METRIC_FAMILIES
+    assert result.row_count == 3
+    assert result.columns["amount"]["null_count"] == 1
+    assert result.columns["amount"]["sum"] == "12.75"
 
 
 def test_quality_returns_all_eight_rules_and_negative_outcomes() -> None:

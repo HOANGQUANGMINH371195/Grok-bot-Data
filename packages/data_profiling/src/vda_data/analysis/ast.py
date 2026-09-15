@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Literal
 
-from vda_data.ingestion import ParsedCsv
+from vda_data.ingestion import ParsedCsv, ParsedParquet
 
 
 class AnalysisError(ValueError):
@@ -23,7 +23,7 @@ class AnalysisPlan:
     filter_equals: str | None = None
     version: int = 1
 
-    def validate(self, source: ParsedCsv) -> None:
+    def validate(self, source: ParsedCsv | ParsedParquet) -> None:
         if self.operation not in {"count", "sum", "mean", "min", "max"}:
             raise AnalysisError("operation is not in the approved catalog")
         if self.column is not None and self.column not in source.headers:
@@ -46,7 +46,7 @@ class AnalysisResult:
 
 
 def execute_plan(
-    source: ParsedCsv,
+    source: ParsedCsv | ParsedParquet,
     plan: AnalysisPlan,
     *,
     mode: Literal["preview", "official"] = "preview",

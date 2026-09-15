@@ -6,7 +6,15 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from vda_data.ingestion import IngestionPolicy, ParsedCsv, parse_csv_bytes
+from vda_data.ingestion import (
+    IngestionPolicy,
+    ParsedCsv,
+    ParsedParquet,
+    parse_csv_bytes,
+    parse_parquet_bytes,
+)
+
+ParsedTable = ParsedCsv | ParsedParquet
 
 METRIC_FAMILIES: tuple[str, ...] = (
     "row_count",
@@ -100,7 +108,11 @@ def profile_csv(payload: bytes, policy: IngestionPolicy | None = None) -> Profil
     return profile_parsed(parse_csv_bytes(payload, policy))
 
 
-def profile_parsed(source: ParsedCsv) -> ProfileResult:
+def profile_parquet(payload: bytes, policy: IngestionPolicy | None = None) -> ProfileResult:
+    return profile_parsed(parse_parquet_bytes(payload, policy))
+
+
+def profile_parsed(source: ParsedTable) -> ProfileResult:
     columns: dict[str, dict[str, Any]] = {}
     for index, header in enumerate(source.headers):
         values = [row[index] for row in source.rows]

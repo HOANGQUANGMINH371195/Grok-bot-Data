@@ -7,7 +7,7 @@
   "git_commit": "c978372d0602cbbe67f3163bd22617c75f3c5c95",
   "image_config_fixture_versions": {
     "python": "3.13.14",
-    "pyarrow": "23.0.1",
+    "pyarrow": "22.0.0",
     "fixture": "flat_small.parquet/v1"
   },
   "commands": [
