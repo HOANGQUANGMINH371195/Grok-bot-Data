@@ -1,0 +1,37 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core/Security review",
+  "git_commit": "a5acbcb55b53a6e5de998578fc83287fbebe5fef",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "postgres": "17.5-alpine",
+    "runtime_schema": "0006_run_events",
+    "journal": "metadata-only-idempotent-v1"
+  },
+  "commands": [
+    {"command": "uv run python -m ruff check packages services tests", "exit_code": 0},
+    {"command": "uv run python -m mypy packages services", "exit_code": 0},
+    {"command": "uv run python -m pytest tests/contract/test_migrations.py tests/unit/test_job_ledger.py tests/unit/test_control_worker.py", "exit_code": 0},
+    {"command": "VDA_TEST_DATABASE_URL=<local-postgres-url> uv run python -m pytest tests/integration/test_runtime_migration.py tests/integration/test_runtime_repository.py tests/integration/test_postgres_worker.py", "exit_code": 0}
+  ],
+  "environment": "local Compose PostgreSQL only; synthetic IDs and local fixture credentials; no AWS/provider calls",
+  "started_at": "2026-09-15T19:32:00-04:00",
+  "ended_at": "2026-09-15T19:36:30-04:00",
+  "exit_codes": [0, 0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "database/migrations/versions/0006_run_events.py", "sha256": "5a14bd05d2ad4372ba88a7bb4350595dcd51b9013be9e9f18061cb5155c75c27"},
+    {"path_or_uri": "database/migrations/versions/0006_run_events.sql", "sha256": "e98ee77039892fed197dacc2ad3b01b8c7f3943b7d836d8fa565dbe2894a9aba"},
+    {"path_or_uri": "packages/platform/src/vda_platform/jobs/repository.py", "sha256": "d2b54aba7c11e0f42d3dc8ace88fe7ff90d7bbe5b3f30ea40fc44509b146680c"},
+    {"path_or_uri": "packages/platform/src/vda_platform/storage/models.py", "sha256": "4af91898107709dc196b1a6f9eb0b4c6cfd17d449029c445087521d3ec16e8ca"},
+    {"path_or_uri": "tests/contract/test_migrations.py", "sha256": "cf010aeda0017fa49e5bc9ed3667d9226d8ce09103cbae20fedf3dad2979799e"},
+    {"path_or_uri": "tests/integration/test_runtime_repository.py", "sha256": "8a01407e18604ff38bf1f33364b5c51d5fe19d905f2dab5d6f77033c20b1f6fd"}
+  ],
+  "limitations": [
+    "Runtime transitions now append tenant-scoped, idempotent metadata-only run events; forbidden raw prompt/content/secret keys and payloads over 16KiB are rejected.",
+    "M1-03 remains BLOCKED: configured domain handler, supervisor/deployment review, kill/restart drill and independent Runtime/Core/Security review remain pending.",
+    "Local migration and integration evidence does not authorize production migration or AWS deployment."
+  ]
+}
