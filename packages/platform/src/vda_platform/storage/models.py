@@ -8,6 +8,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
     String,
     Text,
@@ -135,6 +136,9 @@ class Task(Base):
 
 class RunRecord(Base):
     __tablename__ = "runs"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "task_id"], ["tasks.workspace_id", "tasks.id"]),
+    )
     id: Mapped[str] = mapped_column(String(256), primary_key=True)
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     task_id: Mapped[str] = mapped_column(ForeignKey("tasks.id"), nullable=False)
@@ -158,6 +162,9 @@ class RunRecord(Base):
 
 class AttemptRecord(Base):
     __tablename__ = "attempts"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "run_id"], ["runs.workspace_id", "runs.id"]),
+    )
     id: Mapped[str] = mapped_column(String(256), primary_key=True)
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     run_id: Mapped[str] = mapped_column(ForeignKey("runs.id"), nullable=False)
@@ -171,6 +178,12 @@ class AttemptRecord(Base):
 
 class ToolExecution(Base):
     __tablename__ = "tool_executions"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "run_id"], ["runs.workspace_id", "runs.id"]),
+        ForeignKeyConstraint(
+            ["workspace_id", "attempt_id"], ["attempts.workspace_id", "attempts.id"]
+        ),
+    )
     id: Mapped[str] = mapped_column(String(256), primary_key=True)
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     run_id: Mapped[str] = mapped_column(ForeignKey("runs.id"), nullable=False)
@@ -188,6 +201,12 @@ class ToolExecution(Base):
 
 class EffectRecord(Base):
     __tablename__ = "effects"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "run_id"], ["runs.workspace_id", "runs.id"]),
+        ForeignKeyConstraint(
+            ["workspace_id", "attempt_id"], ["attempts.workspace_id", "attempts.id"]
+        ),
+    )
     id: Mapped[str] = mapped_column(String(256), primary_key=True)
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
     run_id: Mapped[str] = mapped_column(ForeignKey("runs.id"), nullable=False)
