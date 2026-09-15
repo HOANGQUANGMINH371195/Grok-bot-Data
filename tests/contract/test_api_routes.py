@@ -59,3 +59,37 @@ def test_local_bot_turn_is_guarded_and_returns_durable_message(monkeypatch) -> N
     assert turn.status_code == 201
     assert turn.json()["status"] == "ok"
     assert turn.json()["message_id"]
+
+
+def test_local_events_support_cursor_reconnect(monkeypatch) -> None:
+    monkeypatch.setenv("VDA_LOCAL_DEMO", "true")
+    client = TestClient(app)
+    conversation_id = "route-events-contract"
+    created = client.post(
+        "/v1/local/workspaces/w/conversations",
+        headers={"X-Principal-Id": "human-events"},
+        json={"conversation_id": conversation_id, "member_ids": ["human-events"]},
+    )
+    assert created.status_code == 201
+    sent = client.post(
+        f"/v1/local/conversations/{conversation_id}/messages",
+        headers={"X-Principal-Id": "human-events"},
+        json={"client_message_id": "event-1", "body": "one"},
+    )
+    assert sent.status_code == 201
+    first = client.get(
+        f"/v1/local/conversations/{conversation_id}/events?after_seq=0",
+        headers={"X-Principal-Id": "human-events"},
+    )
+    assert first.status_code == 200
+    cursor = first.json()["high_watermark"]
+    client.post(
+        f"/v1/local/conversations/{conversation_id}/messages",
+        headers={"X-Principal-Id": "human-events"},
+        json={"client_message_id": "event-2", "body": "two"},
+    )
+    replay = client.get(
+        f"/v1/local/conversations/{conversation_id}/events?after_seq={cursor}",
+        headers={"X-Principal-Id": "human-events"},
+    )
+    assert [event["event_sequence"] for event in replay.json()["events"]] == [2]

@@ -35,3 +35,15 @@ def test_local_application_rejects_bot_turn_from_nonmember() -> None:
     application.create_conversation("w", "bot-room-2", "human-1", ["human-1", "bot-1"])
     with pytest.raises(PermissionError, match="active member"):
         application.run_bot_turn("bot-room-2", "human-2", "bot-1", "turn-1")
+
+
+def test_local_application_reconnects_from_event_cursor() -> None:
+    application = LocalApplication()
+    application.create_conversation("w", "events-room", "human-1", ["human-1"])
+    application.send("events-room", "human-1", "c1", "first")
+    first, watermark = application.read_events("events-room", "human-1", 0)
+    assert len(first) == 1
+    application.send("events-room", "human-1", "c2", "second")
+    replay, new_watermark = application.read_events("events-room", "human-1", watermark)
+    assert [event.payload["message_id"] for event in replay] == ["events-room:2"]
+    assert new_watermark > watermark

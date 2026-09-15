@@ -75,6 +75,25 @@ class LocalApplication:
         conversation = self.get(conversation_id)
         return conversation.outbox.conversation.visible_messages(actor_id)
 
+    def read_events(self, conversation_id: str, actor_id: str, after_seq: int):
+        if after_seq < 0:
+            raise LocalApiError("after_seq must be non-negative")
+        conversation = self.get(conversation_id)
+        visible_ids = {
+            message.message_id
+            for message in conversation.outbox.conversation.visible_messages(actor_id)
+        }
+        events = tuple(
+            event
+            for event in conversation.outbox.events
+            if event.event_sequence > after_seq
+            and event.payload.get("message_id") in visible_ids
+        )
+        high_watermark = max(
+            (event.event_sequence for event in conversation.outbox.events), default=0
+        )
+        return events, high_watermark
+
     def run_bot_turn(
         self, conversation_id: str, actor_id: str, bot_id: str, turn_id: str
     ) -> tuple[BotTurn, MessageAck | None]:

@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from .application import LocalApiError, LocalApplication
@@ -112,6 +112,33 @@ def read_local_messages(
             }
             for message in messages
         ]
+    }
+
+
+@app.get("/v1/local/conversations/{conversation_id}/events")
+def read_local_events(
+    conversation_id: str,
+    after_seq: int = Query(default=0, ge=0),
+    x_principal_id: str | None = Header(default=None),
+) -> dict[str, object]:
+    if not _local_demo_enabled():
+        raise HTTPException(status_code=404, detail="local demo is disabled")
+    principal_id = _principal(x_principal_id)
+    try:
+        events, high_watermark = local.read_events(conversation_id, principal_id, after_seq)
+    except (LocalApiError, PermissionError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "high_watermark": high_watermark,
+        "events": [
+            {
+                "event_id": event.event_id,
+                "event_sequence": event.event_sequence,
+                "event_type": event.event_type,
+                "payload": event.payload,
+            }
+            for event in events
+        ],
     }
 
 
