@@ -1,0 +1,34 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core/Security review",
+  "git_commit": "c10d9c63e2c88805b10d6f5b3124fb885cd1a2a2",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "postgres": "17.5-alpine",
+    "runtime_schema": "0005_runtime_tenant_fks",
+    "worker": "postgres-control-worker-v1"
+  },
+  "commands": [
+    {"command": "uv run python -m ruff check packages/platform tests/integration/test_postgres_worker.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform", "exit_code": 0},
+    {"command": "VDA_TEST_DATABASE_URL=<local-postgres-url> uv run python -m pytest tests/integration/test_runtime_migration.py tests/integration/test_runtime_repository.py tests/integration/test_postgres_worker.py", "exit_code": 0}
+  ],
+  "environment": "local Compose PostgreSQL only; synthetic IDs and local fixture credentials; no AWS/provider calls",
+  "started_at": "2026-09-15T16:41:00-04:00",
+  "ended_at": "2026-09-15T16:45:00-04:00",
+  "exit_codes": [0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "packages/platform/src/vda_platform/jobs/postgres_worker.py", "sha256": "17df55c49b8f3b19c35c23e0d892bb5ec8e0e48deef8938b7e5339106ac60ec6"},
+    {"path_or_uri": "packages/platform/src/vda_platform/jobs/repository.py", "sha256": "c7152c83601673f3201bcf8af046e3c822fc111199157face966f09d2bb56ddf"},
+    {"path_or_uri": "packages/platform/src/vda_platform/jobs/__init__.py", "sha256": "674ff1ba918ae7a239771aa9d3337a2c7c92ec0fdac5bdeb8aeb6b3a0d651125"},
+    {"path_or_uri": "tests/integration/test_postgres_worker.py", "sha256": "95c45aa81a3f4b8135242545f506d8d89c906a51f4db8efeefba883d781e3e19"}
+  ],
+  "limitations": [
+    "Control worker now has a cooperative polling loop and bounded background lease heartbeat; integration covers loop stop, heartbeat invocation, retry and post-commit worker loss.",
+    "M1-03 remains BLOCKED: service process supervisor/entrypoint wiring, unknown external-effect reconciliation, durable run-event journal integration, kill/restart drill and independent Runtime/Core/Security review remain pending.",
+    "Local integration evidence does not authorize production migration or AWS deployment."
+  ]
+}
