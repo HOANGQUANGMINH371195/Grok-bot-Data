@@ -7,5 +7,6 @@ for relative in (
     "packages/platform/src",
     "packages/data_profiling/src",
     "packages/adapters/src",
+    "pipelines/airflow/dags",
 ):
     sys.path.insert(0, str(ROOT / relative))
