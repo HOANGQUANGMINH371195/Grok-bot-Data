@@ -1,0 +1,33 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core/Security review",
+  "git_commit": "eaed1a73c01d8f3ff111b03a5ca95b4de80e6719",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "postgres": "17.5-alpine",
+    "runtime_schema": "0005_runtime_tenant_fks",
+    "effect_recovery": "reserved-unknown-reconciled-v1"
+  },
+  "commands": [
+    {"command": "uv run python -m ruff check packages/platform/src/vda_platform/jobs/repository.py tests/integration/test_runtime_repository.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform tests/integration/test_runtime_repository.py", "exit_code": 0},
+    {"command": "VDA_TEST_DATABASE_URL=<local-postgres-url> uv run alembic upgrade head", "exit_code": 0},
+    {"command": "VDA_TEST_DATABASE_URL=<local-postgres-url> uv run python -m pytest tests/integration/test_runtime_migration.py tests/integration/test_runtime_repository.py tests/integration/test_postgres_worker.py", "exit_code": 0}
+  ],
+  "environment": "local Compose PostgreSQL only; synthetic IDs and local fixture credentials; no AWS/provider calls",
+  "started_at": "2026-09-15T19:29:00-04:00",
+  "ended_at": "2026-09-15T19:31:37-04:00",
+  "exit_codes": [0, 0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "packages/platform/src/vda_platform/jobs/repository.py", "sha256": "69dfe19e54cce1f56b8c36e4e11787027a9121ec82415f788c9e44a6754708e6"},
+    {"path_or_uri": "tests/integration/test_runtime_repository.py", "sha256": "465c7db9dcffeec7f1e6f451d5f98a7d40319e22c4e4b5f175a126d8330d52ef"}
+  ],
+  "limitations": [
+    "Reserved effects can now be fenced as unknown and reconciled only with an explicit verified result; repeated reconciliation is idempotent and mismatches are rejected.",
+    "M1-03 remains BLOCKED: durable run-event journal integration, kill/restart drill, supervisor/deployment review and independent Runtime/Core/Security review remain pending.",
+    "Local integration evidence does not authorize production migration or AWS deployment."
+  ]
+}
