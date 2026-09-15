@@ -6,6 +6,10 @@
 
 Một private EC2 host chạy Compose app services + Redis cache + Airflow LocalExecutor + OTel/Prometheus/Grafana. RDS PostgreSQL17 Single-AZ giữ core và Airflow metadata trong DB/roles riêng; S3 private/versioned; ECR images; Cognito OIDC; Secrets Manager/KMS; ALB/ACM cùng origin web/API/WS; SSM thay public SSH.
 
+Local validation uses [`compose/compose.local.yaml`](compose/compose.local.yaml). It is a
+developer-only stack with a local password and in-memory API demo; it is not a demo AWS
+deployment and must not receive production secrets.
+
 Network cần ALB/subnet group đúng yêu cầu dịch vụ, một approved NAT egress tới AWS APIs và model provider; app/RDS vẫn single-instance, không hứa HA. Tài nguyên phải gắn owner/environment/budget tags; dry plan không có nghĩa đã được quyền apply.
 
 ## 2. Ownership và deliverables

@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    environment:
+      POSTGRES_DB: vda
+      POSTGRES_USER: vda_local
+      POSTGRES_PASSWORD: local-only-not-for-demo
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vda_local -d vda"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [vda-local]
+
+  redis:
+    image: redis:7.4.2-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks: [vda-local]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: services/api/Dockerfile
+    environment:
+      VDA_LOCAL_DEMO: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    read_only: true
+    tmpfs: [/tmp]
+    networks: [vda-local]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on: [api]
+    networks: [vda-local]
+
+volumes:
+  postgres-local:
+
+networks:
+  vda-local:
+    driver: bridge
