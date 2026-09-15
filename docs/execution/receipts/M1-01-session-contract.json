@@ -1,0 +1,30 @@
+{
+  "task_id": "M1-01",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Leads/Security review",
+  "git_commit": "41c7607412258b7ef29d4bf4e5fc977068b735ac",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "session_contract": "v1",
+    "storage": "hashed opaque token"
+  },
+  "commands": [
+    {"command": "uv run python -m pytest tests/unit/test_sessions.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check packages/platform tests/unit/test_sessions.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform", "exit_code": 0}
+  ],
+  "environment": "local; deterministic session tests; no OIDC callback or cloud calls",
+  "started_at": "2026-09-15T15:50:08-04:00",
+  "ended_at": "2026-09-15T15:50:08-04:00",
+  "exit_codes": [0],
+  "artifacts": [
+    {"path_or_uri": "packages/platform/src/vda_platform/identity/sessions.py", "sha256": "8161e40b532b305e5c8a2f43697431a94541d204bd74ad205c3ffc211a017d0c"},
+    {"path_or_uri": "tests/unit/test_sessions.py", "sha256": "869ad21e51b4d087bd574e2afc2561287779ac09cc06bcc0debda7f5e2d4eb91"}
+  ],
+  "limitations": [
+    "OIDC authorization-code/PKCE callback, issuer/audience validation, persistent session repository and cookie middleware remain pending.",
+    "This receipt is a blocked contract slice, not M1-01 completion."
+  ]
+}
