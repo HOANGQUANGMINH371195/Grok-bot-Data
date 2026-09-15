@@ -1,0 +1,32 @@
+{
+  "task_id": "M0-06",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Leads/Security review",
+  "git_commit": "7297a34e51786ef9c408482cd419a570982cc6dc",
+  "image_config_fixture_versions": {
+    "threat_model": "r1",
+    "authority_matrix": "r1",
+    "data_handling": "r1"
+  },
+  "commands": [
+    {"command": "node scripts/contracts-check.mjs", "exit_code": 0},
+    {"command": "node scripts/evidence-check.mjs", "exit_code": 0},
+    {"command": "git diff --check", "exit_code": 0}
+  ],
+  "environment": "local; documentation/contract review only; no secrets, cloud or live data",
+  "started_at": "2026-09-15T16:28:00-04:00",
+  "ended_at": "2026-09-15T16:29:00-04:00",
+  "exit_codes": [0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "docs/decisions/threat-model-r1.md", "sha256": "84208703ab67d4b389572c658170fcae65a65548e8bb614349be7d0ea44086c1"},
+    {"path_or_uri": "docs/decisions/ownership.md", "sha256": "d99195f992ec69e834c83e415495eb9b570bacbf7cb485207e79461f45701544"},
+    {"path_or_uri": "docs/decisions/data-handling-r1.md", "sha256": "f3956234f6e558dc66cb5a3d64824e2b08cb2d27d132dafbb9f436ab3aaa5f4c"}
+  ],
+  "limitations": [
+    "Adds explicit data classes, provider/telemetry boundaries, retention/deletion rules and human maker-checker authority mapping tied to the R1 contracts.",
+    "M0-06 remains BLOCKED until Leads/Security independently reviews and signs the threat model, grants, data handling and template permissions.",
+    "No live data or secrets were inspected; documentation does not grant production or cloud approval."
+  ]
+}
