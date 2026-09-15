@@ -24,6 +24,7 @@ if (existsSync(envPath)) {
     'EMBEDDING_MODEL', 'EMBEDDING_DIMENSIONS', 'EMBEDDING_BATCH_SIZE',
     'LANGFUSE_SECRET_KEY', 'LANGFUSE_PUBLIC_KEY', 'LANGFUSE_BASE_URL',
     'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_DEFAULT_REGION',
+    'VDA_LOCAL_DEMO',
   ]);
   const names = readFileSync(envPath, 'utf8').split(/\r?\n/)
     .map((line) => line.match(/^\s*([A-Z][A-Z0-9_]*)\s*=/)?.[1])
