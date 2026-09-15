@@ -30,10 +30,22 @@ paths:
       responses:
         '201':
           description: In-memory local conversation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationCreated'
         '401':
           description: Synthetic principal header missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: Invalid or duplicate conversation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/local/conversations/{conversation_id}/messages:
     post:
       operationId: localSendMessage
@@ -49,6 +61,22 @@ paths:
       responses:
         '201':
           description: Message and durable event committed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageAck'
+        '401':
+          description: Synthetic principal header missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Invalid membership or idempotency conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     get:
       operationId: localReadMessages
       parameters:
@@ -57,6 +85,22 @@ paths:
       responses:
         '200':
           description: ACL-filtered messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageList'
+        '401':
+          description: Synthetic principal header missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation or membership not visible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/local/conversations/{conversation_id}/events:
     get:
       operationId: localReadEvents
@@ -72,6 +116,22 @@ paths:
       responses:
         '200':
           description: Durable cursor replay and high watermark
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventReplay'
+        '401':
+          description: Synthetic principal header missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Conversation or membership not visible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/local/conversations/{conversation_id}/bot-turn:
     post:
       operationId: localRunBotTurn
@@ -87,6 +147,22 @@ paths:
       responses:
         '201':
           description: Bounded fake-provider bot turn result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotTurnResponse'
+        '403':
+          description: Actor or bot is not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Local demo is disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     PrincipalId:
@@ -143,3 +219,77 @@ components:
       properties:
         bot_id: {type: string, minLength: 1, maxLength: 256}
         turn_id: {type: string, minLength: 1, maxLength: 256}
+    ConversationCreated:
+      type: object
+      additionalProperties: false
+      required: [conversation_id, workspace_id]
+      properties:
+        conversation_id: {type: string, minLength: 1, maxLength: 256}
+        workspace_id: {type: string, minLength: 1, maxLength: 256}
+    MessageAck:
+      type: object
+      additionalProperties: false
+      required: [message_id, sequence, bot_dispatch, event_id]
+      properties:
+        message_id: {type: string, minLength: 1, maxLength: 256}
+        sequence: {type: integer, minimum: 1}
+        bot_dispatch:
+          type: object
+          additionalProperties: {type: string}
+        event_id: {type: string, minLength: 1, maxLength: 256}
+    Message:
+      type: object
+      additionalProperties: false
+      required: [message_id, sender_id, sequence, body]
+      properties:
+        message_id: {type: string, minLength: 1, maxLength: 256}
+        sender_id: {type: string, minLength: 1, maxLength: 256}
+        sequence: {type: integer, minimum: 1}
+        body: {type: string}
+    MessageList:
+      type: object
+      additionalProperties: false
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items: {$ref: '#/components/schemas/Message'}
+    EventEnvelope:
+      type: object
+      additionalProperties: false
+      required: [event_id, event_sequence, event_type, payload]
+      properties:
+        event_id: {type: string, minLength: 1, maxLength: 256}
+        event_sequence: {type: integer, minimum: 1}
+        event_type: {type: string, minLength: 1, maxLength: 128}
+        payload: {type: object, additionalProperties: false}
+    EventReplay:
+      type: object
+      additionalProperties: false
+      required: [high_watermark, events]
+      properties:
+        high_watermark: {type: integer, minimum: 0}
+        events:
+          type: array
+          items: {$ref: '#/components/schemas/EventEnvelope'}
+    BotTurnResponse:
+      type: object
+      additionalProperties: false
+      required: [status, provider, model, error_code, message_id, sequence, text]
+      properties:
+        status: {type: string, enum: [ok, queued, needs_approval, needs_input, denied, failed]}
+        provider: {type: string}
+        model: {type: string}
+        error_code: {type: [string, 'null']}
+        message_id: {type: [string, 'null']}
+        sequence: {type: [integer, 'null'], minimum: 1}
+        text: {type: string}
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [detail]
+      properties:
+        detail: {type: string, minLength: 1, maxLength: 1000}
+        code: {type: string, maxLength: 128}
+        correlation_id: {type: string, maxLength: 256}
+        retryable: {type: boolean}

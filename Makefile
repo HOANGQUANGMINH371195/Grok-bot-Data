@@ -14,6 +14,8 @@ bootstrap:
 
 contracts-check:
 	$(NODE) scripts/contracts-check.mjs
+	$(NODE) scripts/contracts-ts-check.mjs
+	$(NODE) --experimental-strip-types scripts/contracts-client-smoke.mjs
 
 lint:
 	$(PYTHON) -m ruff check packages services tests
