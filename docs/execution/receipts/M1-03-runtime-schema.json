@@ -1,0 +1,62 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core review",
+  "git_commit": "388c7a85c46c793e7e678e1e7f1aae573060da4b",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "alembic": "0004_runtime",
+    "database": "PostgreSQL 17 contract; not started in this run"
+  },
+  "commands": [
+    {
+      "command": "uv run python -m pytest tests/contract/test_migrations.py",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run python -m ruff check packages/platform tests/contract/test_migrations.py",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run python -m mypy packages/platform",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run alembic heads",
+      "exit_code": 0
+    }
+  ],
+  "environment": "local; migration/metadata contract only; no database, cloud, provider or worker process calls",
+  "started_at": "2026-09-15T16:14:00-04:00",
+  "ended_at": "2026-09-15T16:16:00-04:00",
+  "exit_codes": [0, 0, 0, 0],
+  "artifacts": [
+    {
+      "path_or_uri": "database/migrations/versions/0004_runtime.py",
+      "sha256": "33de042a67dafe29cf61380888b90f7e14919b90fa1bf994fbd962b7a1b0e8ea"
+    },
+    {
+      "path_or_uri": "database/migrations/versions/0004_runtime.sql",
+      "sha256": "8ceb791a0a9d8758de43b140e4b4ae55b08fa65699f3df37a7a7de5dc39a8624"
+    },
+    {
+      "path_or_uri": "packages/platform/src/vda_platform/storage/models.py",
+      "sha256": "c178002b15eb66755dc741cedc2b233ec9eefdd94c4c32c39b4e37a02d28a507"
+    },
+    {
+      "path_or_uri": "packages/platform/src/vda_platform/storage/__init__.py",
+      "sha256": "abba8c4ee570dcd1734a3125cd2149795d127f6ef163c5ac2063fa4c7392aa19"
+    },
+    {
+      "path_or_uri": "tests/contract/test_migrations.py",
+      "sha256": "61cefa5c906ca13830a78d6a12b9b2b0989813e799b092c4b07d5b4cd907c0dd"
+    }
+  ],
+  "limitations": [
+    "Adds tenant-scoped task/run/attempt/tool-execution/effect tables, idempotency keys, active-run uniqueness, lease/fence/checkpoint fields and FORCE RLS metadata.",
+    "M1-03 remains BLOCKED: SQL was not applied against a running PostgreSQL instance; claim/heartbeat/reconcile control worker, transaction ordering and crash-before/after-commit recovery tests are pending.",
+    "The in-memory JobLedger receipt M1-03-job-ledger.json is retained as historical evidence; this receipt is the latest schema slice."
+  ]
+}
