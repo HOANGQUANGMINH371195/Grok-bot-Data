@@ -55,12 +55,12 @@ def test_pii_and_quality_provider_policy_fixtures_are_pinned() -> None:
     assert set(quality["rules"]) == {
         "not_null",
         "unique",
-        "numeric_finite",
-        "accepted_values",
         "range",
-        "referential",
+        "allowed_values",
+        "approved_pattern",
+        "row_count_range",
+        "schema_matches",
         "freshness",
-        "schema",
     }
     provider = json.loads((ROOT / "fixtures/providers/fake_model.json").read_text())
     assert set(provider["failure_cases"]) == {

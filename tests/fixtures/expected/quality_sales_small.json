@@ -3,11 +3,11 @@
   "rules": {
     "not_null": "fail_on_null",
     "unique": "pass",
-    "numeric_finite": "pass",
-    "accepted_values": "not_evaluated_without_catalog",
-    "range": "not_evaluated_without_bounds",
-    "referential": "not_evaluated_without_reference",
-    "freshness": "not_evaluated_without_now_policy",
-    "schema": "pass"
+    "range": "skipped_without_bounds",
+    "allowed_values": "skipped_without_catalog",
+    "approved_pattern": "skipped_without_catalog",
+    "row_count_range": "skipped_without_bounds",
+    "schema_matches": "skipped_without_schema",
+    "freshness": "skipped_without_now_policy"
   }
 }
