@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VDaAgent safe UI cards",
+  "type": "object",
+  "required": ["card_type", "card_version", "data", "evidence_refs", "limitations"],
+  "additionalProperties": false,
+  "properties": {
+    "card_type": {"enum": ["text", "tool_result", "profile_summary", "chart", "evidence", "report", "run", "approval_request"]},
+    "card_version": {"const": "v1"},
+    "data": {"type": "object", "additionalProperties": false},
+    "evidence_refs": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 256}},
+    "limitations": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 1000}}
+  }
+}

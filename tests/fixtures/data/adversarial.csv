@@ -1,0 +1,3 @@
+id,formula,very_long
+1,"=HYPERLINK(\"https://evil.invalid\")","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+2,"{{ untrusted_template }}","null"

@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "max_file_bytes": 268435456,
+  "max_rows": 1000000,
+  "max_columns": 200,
+  "max_decoded_bytes": 1073741824,
+  "allow_formats": ["csv", "parquet"],
+  "deny": ["raw_sql", "shell", "arbitrary_url", "secret_value", "human_approval"],
+  "pii_default": "restricted"
+}

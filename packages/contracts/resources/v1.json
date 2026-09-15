@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VDaAgent resource references",
+  "definitions": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9_.:-]+$"},
+    "workspace_id": {"$ref": "#/definitions/id"},
+    "conversation_id": {"$ref": "#/definitions/id"},
+    "resource_ref": {
+      "type": "object",
+      "required": ["workspace_id", "resource_id", "resource_type", "revision"],
+      "additionalProperties": false,
+      "properties": {
+        "workspace_id": {"$ref": "#/definitions/id"},
+        "resource_id": {"$ref": "#/definitions/id"},
+        "resource_type": {"enum": ["dataset", "artifact", "profile", "analysis", "report", "run"]},
+        "revision": {"type": "integer", "minimum": 0}
+      }
+    },
+    "cursor": {
+      "type": "object",
+      "required": ["sequence", "generation"],
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 0},
+        "generation": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

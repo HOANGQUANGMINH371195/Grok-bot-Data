@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VDaAgent event envelope",
+  "type": "object",
+  "required": ["event_id", "event_type", "workspace_id", "occurred_at", "event_seq", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "event_type": {"enum": ["message.created", "message.edited", "message.deleted", "run.updated", "tool.executed", "artifact.ready", "report.published", "observatory.journaled"]},
+    "workspace_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "conversation_id": {"type": "string", "maxLength": 256},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "event_seq": {"type": "integer", "minimum": 1},
+    "actor_id": {"type": "string", "maxLength": 256},
+    "policy_generation": {"type": "integer", "minimum": 0},
+    "payload": {"type": "object", "additionalProperties": false}
+  }
+}

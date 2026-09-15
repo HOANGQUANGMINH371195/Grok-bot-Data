@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "roles": ["viewer", "editor", "owner", "moderator", "member"],
+  "run_states": ["queued", "leased", "running", "waiting", "completed", "handed_off", "failed", "cancelled"],
+  "wait_reasons": ["input", "approval", "children", "tool", "peer"],
+  "result_statuses": ["ok", "queued", "needs_approval", "needs_input", "denied", "failed"],
+  "message": {
+    "required": ["conversation_id", "sender_id", "client_message_id", "body"],
+    "idempotency": "unique(conversation_id,sender_id,client_message_id)",
+    "same_key_different_payload": "409"
+  },
+  "context": {
+    "required_budget_components": ["system", "tools", "history", "memory", "results", "output", "margin"],
+    "summary_cas": true,
+    "private_scope_must_not_enter_group_prompt": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "fixture_version": "v1",
+  "rules": {
+    "not_null": "fail_on_null",
+    "unique": "pass",
+    "numeric_finite": "pass",
+    "accepted_values": "not_evaluated_without_catalog",
+    "range": "not_evaluated_without_bounds",
+    "referential": "not_evaluated_without_reference",
+    "freshness": "not_evaluated_without_now_policy",
+    "schema": "pass"
+  }
+}

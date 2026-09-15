@@ -1,0 +1,9 @@
+{
+  "fixture_version": "v1",
+  "source": "sales_small.csv",
+  "rows": 3,
+  "columns": 5,
+  "null_counts": {"order_id": 0, "region": 0, "amount": 1, "ordered_at": 0, "customer_email": 1},
+  "pii_columns": ["customer_email"],
+  "limitations": ["small synthetic fixture"]
+}

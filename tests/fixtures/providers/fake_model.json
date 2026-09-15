@@ -1,0 +1,9 @@
+{
+  "provider": "fake",
+  "model": "fake-grounded-v1",
+  "responses": {
+    "grounded_profile_question": {"text": "The verified result is in evidence e-profile-001.", "tool_calls": []},
+    "missing_evidence": {"text": "I need a verified result before making that claim.", "tool_calls": []}
+  },
+  "failure_cases": ["timeout", "rate_limit", "malformed_tool_call", "private_scope_request"]
+}
