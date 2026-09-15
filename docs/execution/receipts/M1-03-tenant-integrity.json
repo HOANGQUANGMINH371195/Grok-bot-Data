@@ -1,0 +1,36 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core/Security review",
+  "git_commit": "7ce73714aaa135de32400199ab841d56de90e0ef",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "postgres": "17.5-alpine",
+    "runtime_schema": "0005_runtime_tenant_fks"
+  },
+  "commands": [
+    {"command": "uv run python -m pytest tests/contract/test_migrations.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check packages/platform tests/contract/test_migrations.py tests/integration/test_runtime_migration.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform", "exit_code": 0},
+    {"command": "uv run python -c 'Alembic programmatic upgrade head against local PostgreSQL'", "exit_code": 0},
+    {"command": "VDA_TEST_DATABASE_URL=<local-postgres-url> uv run python -m pytest tests/integration/test_runtime_migration.py tests/integration/test_runtime_repository.py", "exit_code": 0}
+  ],
+  "environment": "local Compose PostgreSQL only; local fixture credentials; no AWS/provider/external worker calls",
+  "started_at": "2026-09-15T16:37:00-04:00",
+  "ended_at": "2026-09-15T16:39:00-04:00",
+  "exit_codes": [0, 0, 0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "database/migrations/versions/0005_runtime_tenant_fks.py", "sha256": "4e7833ccafb7f5b870e020d00946295a5f1205f564d5f7c89887f01782142530"},
+    {"path_or_uri": "database/migrations/versions/0005_runtime_tenant_fks.sql", "sha256": "c7db6e6d5c5ceeb6c54d3cfeb7831c3869d70d6ded7a6fa4b9228a27060d08c8"},
+    {"path_or_uri": "packages/platform/src/vda_platform/storage/models.py", "sha256": "6256bf60a816846906b71a69d1d5af948f7640946e4f6cd70d26af526167f1c2"},
+    {"path_or_uri": "tests/contract/test_migrations.py", "sha256": "5e7da10ba82054f8ea6a0bee7d745cb9a4f291c0148fe7ff301c5e57fe22c8b0"},
+    {"path_or_uri": "tests/integration/test_runtime_migration.py", "sha256": "51e6c001a32d3a9b709202f30654068dac151ed8702947528683938aa6a49d13"}
+  ],
+  "limitations": [
+    "0005 adds expand-only composite workspace FKs for task/run/attempt/tool/effect references and validates them on local PostgreSQL with FORCE RLS.",
+    "M1-03 remains BLOCKED: long-running control worker/reconciler, effect commit/reconcile protocol, process-kill drill and independent Runtime/Core/Security review remain pending.",
+    "No production migration apply or AWS deployment was performed."
+  ]
+}
