@@ -2,12 +2,13 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/services/api/src:/app/packages/platform/src:/app/packages/adapters/src:/app/packages/data_profiling/src
+    PYTHONPATH=/app/services/api/src:/app/services/control_worker/src:/app/packages/platform/src:/app/packages/adapters/src:/app/packages/data_profiling/src
 WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
 COPY packages ./packages
 COPY services/api ./services/api
+COPY services/control_worker ./services/control_worker
 COPY scripts ./scripts
 
 RUN pip install --no-cache-dir uv==0.11.31 \
