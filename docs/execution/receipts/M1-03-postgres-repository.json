@@ -1,0 +1,35 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core review",
+  "git_commit": "88ac0add65384c5210ab5c3dde1c513f2788ddd3",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "postgres": "17.5-alpine",
+    "runtime_schema": "0004_runtime",
+    "repository": "postgres-runtime-v1"
+  },
+  "commands": [
+    {"command": "uv run python -m ruff check packages/platform tests/integration/test_runtime_repository.py", "exit_code": 0},
+    {"command": "uv run python -m mypy packages/platform", "exit_code": 0},
+    {"command": "VDA_TEST_DATABASE_URL=<local-postgres-url> uv run python -m pytest tests/integration/test_runtime_migration.py tests/integration/test_runtime_repository.py", "exit_code": 0}
+  ],
+  "environment": "local Compose PostgreSQL only; URL/credentials are local fixture values; no AWS, provider or external worker calls",
+  "started_at": "2026-09-15T16:30:00-04:00",
+  "ended_at": "2026-09-15T16:37:00-04:00",
+  "exit_codes": [0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "packages/platform/src/vda_platform/jobs/repository.py", "sha256": "f633a4fce4a2626dc081feeba78837d3f1500766f3cf46abd11708db7cc10762"},
+    {"path_or_uri": "packages/platform/src/vda_platform/jobs/__init__.py", "sha256": "cb7b1c78bae40059aeaa7ab98e5fee929ce7bd56260414ad59681b97e20c8df5"},
+    {"path_or_uri": "tests/integration/test_runtime_repository.py", "sha256": "2dc08576133d123290fb3dc20d7b3cc97ea71468f37e6090ab7636767d8e91de"},
+    {"path_or_uri": "tests/integration/test_runtime_migration.py", "sha256": "ac64ea557b87a3a861a3d5910792ec65da04b01a9d3cc493dfe288d74f930596"},
+    {"path_or_uri": "database/migrations/versions/0004_runtime.sql", "sha256": "8ceb791a0a9d8758de43b140e4b4ae55b08fa65699f3df37a7a7de5dc39a8624"}
+  ],
+  "limitations": [
+    "PostgresRuntimeRepository now performs transaction-local tenant scoping, idempotent task creation, SKIP LOCKED run claims, monotonic fences, attempts, heartbeat, checkpoint, waiting/resume, tool execution and effect reservation; integration covers stale-worker rejection and duplicate operation safety.",
+    "M1-03 remains BLOCKED: no long-running control-worker process/reconciler, effect commit/reconcile protocol, cross-tenant composite-FK hardening, process kill drill or independent Runtime/Core review yet.",
+    "The integration test uses a local PostgreSQL container and synthetic IDs; it is not AWS/demo deployment evidence."
+  ]
+}
