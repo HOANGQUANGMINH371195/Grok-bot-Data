@@ -31,3 +31,39 @@ def test_observatory_rejects_raw_prompt_or_secret_metadata() -> None:
             audience_principals=frozenset({"human-1"}),
             metadata={"prompt": "private", "api_secret": "do-not-store"},
         )
+
+
+def test_observatory_rejects_nested_content_and_reuses_identical_record_id() -> None:
+    journal = ObservatoryJournal()
+    kwargs = {
+        "record_id": "j1",
+        "workspace_id": "w",
+        "conversation_id": "c",
+        "run_id": "r",
+        "actor_id": "bot",
+        "event_type": "run.updated",
+        "audience_principals": frozenset({"human-1"}),
+        "metadata": {"status": "running", "counts": {"tools": 1}},
+    }
+    first = journal.append(**kwargs)
+    assert journal.append(**kwargs) is first
+    with pytest.raises(ObservatoryViolation, match="different metadata"):
+        journal.append(**{**kwargs, "metadata": {"status": "failed"}})
+    with pytest.raises(ObservatoryViolation, match="raw prompt"):
+        journal.append(**{**kwargs, "record_id": "j2", "metadata": {"nested": {"content": "x"}}})
+
+
+def test_observatory_rejects_empty_audience_and_unsupported_metadata() -> None:
+    journal = ObservatoryJournal()
+    base = {
+        "record_id": "j3",
+        "workspace_id": "w",
+        "conversation_id": "c",
+        "run_id": "r",
+        "actor_id": "bot",
+        "event_type": "run.updated",
+    }
+    with pytest.raises(ObservatoryViolation, match="audience"):
+        journal.append(**base, audience_principals=frozenset(), metadata={})
+    with pytest.raises(ObservatoryViolation, match="unsupported"):
+        journal.append(**base, audience_principals=frozenset({"h"}), metadata={"value": object()})
