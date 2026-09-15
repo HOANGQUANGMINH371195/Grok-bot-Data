@@ -215,3 +215,22 @@ class EffectRecord(Base):
     state: Mapped[str] = mapped_column(String(32), nullable=False)
     result_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class RunEvent(Base):
+    __tablename__ = "run_events"
+    __table_args__ = (
+        ForeignKeyConstraint(["workspace_id", "run_id"], ["runs.workspace_id", "runs.id"]),
+        ForeignKeyConstraint(
+            ["workspace_id", "attempt_id"], ["attempts.workspace_id", "attempts.id"]
+        ),
+        UniqueConstraint("workspace_id", "event_key"),
+    )
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    attempt_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    event_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    metadata_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

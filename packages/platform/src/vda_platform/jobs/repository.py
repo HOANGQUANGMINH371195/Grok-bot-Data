@@ -49,8 +49,16 @@ class EffectRecord:
     result_ref: str | None
 
 
+@dataclass(frozen=True)
+class RunEventRecord:
+    event_id: str
+    event_key: str
+    event_type: str
+    metadata: dict[str, object]
+
+
 class PostgresRuntimeRepository:
-    """Transactional runtime repository for the 0004_runtime schema.
+    """Transactional runtime repository for the 0006_runtime schema.
 
     Every public mutation scopes the connection with ``SET LOCAL`` semantics before
     touching tenant rows. Claims commit the lease and attempt immediately, so no
@@ -257,6 +265,16 @@ class PostgresRuntimeRepository:
                     "fence": fence,
                     "started_at": timestamp,
                 },
+            )
+            _insert_run_event(
+                connection,
+                workspace_id=workspace_id,
+                run_id=str(row["id"]),
+                attempt_id=attempt_id,
+                event_key=f"{row['id']}:fence:{fence}:leased",
+                event_type="run.leased",
+                metadata={"state": "leased", "fence": fence, "worker_id": worker_id},
+                now=timestamp,
             )
             return RunLease(
                 str(row["id"]),
@@ -619,6 +637,34 @@ class PostgresRuntimeRepository:
                 str(row["id"]), str(row["operation_key"]), str(row["state"]), row["result_ref"]
             )
 
+    def append_run_event(
+        self,
+        *,
+        workspace_id: str,
+        run_id: str,
+        event_key: str,
+        event_type: str,
+        metadata: Mapping[str, object],
+        attempt_id: str | None = None,
+        now: datetime | None = None,
+    ) -> RunEventRecord:
+        """Append an idempotent, metadata-only event under tenant RLS."""
+
+        self._required(workspace_id, run_id, event_key, event_type)
+        timestamp = _utc(now or datetime.now(UTC))
+        with self._engine.begin() as connection:
+            _scope(connection, workspace_id)
+            return _insert_run_event(
+                connection,
+                workspace_id=workspace_id,
+                run_id=run_id,
+                attempt_id=attempt_id,
+                event_key=event_key,
+                event_type=event_type,
+                metadata=metadata,
+                now=timestamp,
+            )
+
     def _transition(
         self,
         lease: RunLease,
@@ -682,6 +728,21 @@ class PostgresRuntimeRepository:
             )
             if result.rowcount != 1:
                 raise FenceError("stale or non-owner worker")
+            _insert_run_event(
+                connection,
+                workspace_id=lease.workspace_id,
+                run_id=lease.run_id,
+                attempt_id=lease.attempt_id,
+                event_key=f"{lease.run_id}:fence:{lease.fence}:state:{state.value}",
+                event_type=f"run.{state.value}",
+                metadata={
+                    "state": state.value,
+                    "fence": lease.fence,
+                    "error_code": error_code,
+                    "wait_reason": stored_wait_reason,
+                },
+                now=timestamp,
+            )
         return replace(
             lease,
             state=state,
@@ -724,3 +785,96 @@ def _json_object(value: Any) -> dict[str, object] | None:
     if not isinstance(decoded, dict):
         raise RuntimeRepositoryError("runtime JSON value must be an object")
     return dict(decoded)
+
+
+_FORBIDDEN_EVENT_KEYS = ("prompt", "content", "secret", "token", "password", "authorization")
+
+
+def _insert_run_event(
+    connection: Connection,
+    *,
+    workspace_id: str,
+    run_id: str,
+    event_key: str,
+    event_type: str,
+    metadata: Mapping[str, object],
+    attempt_id: str | None,
+    now: datetime,
+) -> RunEventRecord:
+    safe_metadata = _safe_event_metadata(metadata)
+    payload = _json_payload(safe_metadata)
+    if len(payload.encode("utf-8")) > 16_384:
+        raise RuntimeRepositoryError("run event metadata exceeds 16KiB")
+    connection.execute(
+        text(
+            """
+            INSERT INTO run_events
+              (id, workspace_id, run_id, attempt_id, event_key, event_type,
+               metadata_json, created_at)
+            VALUES
+              (:id, :workspace_id, :run_id, :attempt_id, :event_key, :event_type,
+               CAST(:metadata_json AS jsonb), :created_at)
+            ON CONFLICT (workspace_id, event_key) DO NOTHING
+            """
+        ),
+        {
+            "id": f"run-event-{uuid.uuid4().hex}",
+            "workspace_id": workspace_id,
+            "run_id": run_id,
+            "attempt_id": attempt_id,
+            "event_key": event_key,
+            "event_type": event_type,
+            "metadata_json": payload,
+            "created_at": now,
+        },
+    )
+    row = connection.execute(
+        text(
+            "SELECT id, event_key, event_type, run_id, attempt_id, metadata_json "
+            "FROM run_events "
+            "WHERE workspace_id = :workspace_id AND event_key = :event_key"
+        ),
+        {"workspace_id": workspace_id, "event_key": event_key},
+    ).mappings().one()
+    if (
+        row["event_type"] != event_type
+        or row["run_id"] != run_id
+        or row["attempt_id"] != attempt_id
+    ):
+        raise RuntimeRepositoryError("run event key was reused with different input")
+    return _event_from_row(row, safe_metadata)
+
+
+def _event_from_row(
+    row: Mapping[Any, Any], expected_metadata: Mapping[str, object]
+) -> RunEventRecord:
+    existing_metadata = _json_object(row["metadata_json"])
+    if existing_metadata != dict(expected_metadata):
+        raise RuntimeRepositoryError("run event key was reused with different input")
+    return RunEventRecord(
+        str(row["id"]),
+        str(row["event_key"]),
+        str(row["event_type"]),
+        existing_metadata or {},
+    )
+
+
+def _safe_event_metadata(value: Mapping[str, object]) -> dict[str, object]:
+    def visit(current: object, key: str = "metadata") -> object:
+        if any(term in key.lower() for term in _FORBIDDEN_EVENT_KEYS):
+            raise RuntimeRepositoryError("run event metadata cannot contain raw content or secrets")
+        if current is None or isinstance(current, (str, int, float, bool)):
+            return current
+        if isinstance(current, Mapping):
+            return {
+                str(child_key): visit(child_value, str(child_key))
+                for child_key, child_value in current.items()
+            }
+        if isinstance(current, list):
+            return [visit(child, key) for child in current]
+        raise RuntimeRepositoryError("run event metadata must be JSON-safe")
+
+    result = visit(dict(value))
+    if not isinstance(result, dict):
+        raise RuntimeRepositoryError("run event metadata must be an object")
+    return result

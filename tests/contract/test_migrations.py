@@ -21,6 +21,9 @@ def test_alembic_revision_chain_is_linear_and_sql_backed() -> None:
     tenant_fks = _load(
         "migration_0005", root / "database/migrations/versions/0005_runtime_tenant_fks.py"
     )
+    run_events = _load(
+        "migration_0006", root / "database/migrations/versions/0006_run_events.py"
+    )
     assert core.revision == "0001_core"
     assert core.down_revision is None
     assert messaging.revision == "0002_messaging"
@@ -31,6 +34,8 @@ def test_alembic_revision_chain_is_linear_and_sql_backed() -> None:
     assert runtime.down_revision == identity.revision
     assert tenant_fks.revision == "0005_runtime_tenant_fks"
     assert tenant_fks.down_revision == runtime.revision
+    assert run_events.revision == "0006_run_events"
+    assert run_events.down_revision == tenant_fks.revision
     assert (root / "database/migrations/versions/0001_core.sql").exists()
     assert (root / "database/migrations/versions/0002_messaging.sql").exists()
     identity_sql = (root / "database/migrations/versions/0003_identity.sql").read_text()
@@ -48,6 +53,7 @@ def test_alembic_revision_chain_is_linear_and_sql_backed() -> None:
         "attempts",
         "tool_executions",
         "effects",
+        "run_events",
     } <= set(Base.metadata.tables)
     tenant_fk_sql = (root / "database/migrations/versions/0005_runtime_tenant_fks.sql").read_text()
     for constraint in (
@@ -57,3 +63,6 @@ def test_alembic_revision_chain_is_linear_and_sql_backed() -> None:
         "effects_workspace_attempt_fk",
     ):
         assert constraint in tenant_fk_sql
+    run_events_sql = (root / "database/migrations/versions/0006_run_events.sql").read_text()
+    assert "run_events_workspace_run_fk" in run_events_sql
+    assert "FORCE ROW LEVEL SECURITY" in run_events_sql

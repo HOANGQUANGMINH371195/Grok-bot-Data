@@ -5,6 +5,7 @@ from .postgres_worker import PostgresControlWorker
 from .repository import (
     EffectRecord,
     PostgresRuntimeRepository,
+    RunEventRecord,
     RunLease,
     RuntimeRepositoryError,
     ToolExecutionRecord,
@@ -22,6 +23,7 @@ __all__ = [
     "PostgresRuntimeRepository",
     "PostgresControlWorker",
     "RunLease",
+    "RunEventRecord",
     "RuntimeRepositoryError",
     "RetryableJobError",
     "ToolExecutionRecord",

@@ -56,6 +56,40 @@ def test_postgres_runtime_claim_fence_checkpoint_and_effect_idempotency() -> Non
         task_id=task_id,
         now=NOW,
     )
+    event = repository.append_run_event(
+        workspace_id=workspace_id,
+        run_id=run_id,
+        event_key="run-created",
+        event_type="run.created",
+        metadata={"state": "queued", "actor": "control"},
+        now=NOW,
+    )
+    assert repository.append_run_event(
+        workspace_id=workspace_id,
+        run_id=run_id,
+        event_key="run-created",
+        event_type="run.created",
+        metadata={"state": "queued", "actor": "control"},
+        now=NOW,
+    ) == event
+    with pytest.raises(RuntimeRepositoryError, match="different input"):
+        repository.append_run_event(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            event_key="run-created",
+            event_type="run.failed",
+            metadata={"state": "failed"},
+            now=NOW,
+        )
+    with pytest.raises(RuntimeRepositoryError, match="raw content"):
+        repository.append_run_event(
+            workspace_id=workspace_id,
+            run_id=run_id,
+            event_key="run-prompt",
+            event_type="run.debug",
+            metadata={"prompt": "must not persist"},
+            now=NOW,
+        )
 
     first = repository.claim_run(workspace_id=workspace_id, worker_id="worker-a", now=NOW)
     assert first is not None
@@ -166,4 +200,28 @@ def test_postgres_runtime_claim_fence_checkpoint_and_effect_idempotency() -> Non
         worker_id="worker-c",
         now=NOW + timedelta(seconds=12),
     ) is None
+    with engine.begin() as connection:
+        connection.execute(
+            text("SELECT set_config('app.workspace_id', :workspace_id, true)"),
+            {"workspace_id": workspace_id},
+        )
+        event_types = [
+            row[0]
+            for row in connection.execute(
+                text(
+                    "SELECT event_type FROM run_events "
+                    "WHERE workspace_id = :workspace_id AND run_id = :run_id "
+                    "ORDER BY created_at, id"
+                ),
+                {"workspace_id": workspace_id, "run_id": run_id},
+            ).all()
+        ]
+    assert sorted(event_types) == sorted([
+        "run.created",
+        "run.leased",
+        "run.running",
+        "run.waiting",
+        "run.leased",
+        "run.completed",
+    ])
     engine.dispose()
