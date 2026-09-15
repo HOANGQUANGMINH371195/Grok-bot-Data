@@ -1,0 +1,50 @@
+{
+  "task_id": "M1-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Runtime/Core review",
+  "git_commit": "c9f19ae3c91cb231c275534304e28c170854eddd",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "job_ledger": "in-memory-lease-fence-v1",
+    "fixture": "NOW=2026-01-01T00:00:00Z"
+  },
+  "commands": [
+    {
+      "command": "uv run python -m pytest tests/unit/test_job_ledger.py",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run python -m ruff check packages/platform tests/unit/test_job_ledger.py",
+      "exit_code": 0
+    },
+    {
+      "command": "uv run python -m mypy packages/platform",
+      "exit_code": 0
+    }
+  ],
+  "environment": "local; in-memory contract only; no database, cloud, provider or worker process calls",
+  "started_at": "2026-09-15T16:12:00-04:00",
+  "ended_at": "2026-09-15T16:13:00-04:00",
+  "exit_codes": [0, 0, 0],
+  "artifacts": [
+    {
+      "path_or_uri": "packages/platform/src/vda_platform/jobs/ledger.py",
+      "sha256": "97975e5393c0d7a4a903d3a177da20fa9a44dd7ac497ac24231b5cff38d4552a"
+    },
+    {
+      "path_or_uri": "packages/platform/src/vda_platform/jobs/__init__.py",
+      "sha256": "dcf02856efd2c94a586425b5d6dd1fa4d765b57a11f3c41cc50e6f3629f237d9"
+    },
+    {
+      "path_or_uri": "tests/unit/test_job_ledger.py",
+      "sha256": "bb955112b4c4c1daf4563091cf67e16b4d89bc036cc0ee2e5f4784138b6be18d"
+    }
+  ],
+  "limitations": [
+    "This slice provides an offline idempotent enqueue, lease expiry, monotonic fence, checkpoint, wait/resume, retryable failure and cancellation contract with stale-writer negatives.",
+    "M1-03 remains BLOCKED: Task/Run/Attempt/ToolExecution/effect persistence, PostgreSQL lease transactions, control worker integration and before/after-commit recovery tests are pending.",
+    "Independent Runtime/Core review and M0-03/M0-04/M0-06 dependency sign-off are pending."
+  ]
+}
