@@ -12,11 +12,17 @@ local = LocalApplication()
 class CreateConversationRequest(BaseModel):
     conversation_id: str = Field(min_length=1, max_length=256)
     member_ids: list[str] = Field(min_length=1, max_length=32)
+    bot_templates: dict[str, str] = Field(default_factory=dict, max_length=16)
 
 
 class SendMessageRequest(BaseModel):
     client_message_id: str = Field(min_length=1, max_length=256)
     body: str = Field(min_length=1, max_length=12000)
+
+
+class BotTurnRequest(BaseModel):
+    bot_id: str = Field(min_length=1, max_length=256)
+    turn_id: str = Field(min_length=1, max_length=256)
 
 
 def _local_demo_enabled() -> bool:
@@ -56,6 +62,7 @@ def create_local_conversation(
             request.conversation_id,
             principal_id,
             request.member_ids,
+            request.bot_templates,
         )
     except LocalApiError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -105,4 +112,30 @@ def read_local_messages(
             }
             for message in messages
         ]
+    }
+
+
+@app.post("/v1/local/conversations/{conversation_id}/bot-turn", status_code=201)
+def run_local_bot_turn(
+    conversation_id: str,
+    request: BotTurnRequest,
+    x_principal_id: str | None = Header(default=None),
+) -> dict[str, object]:
+    if not _local_demo_enabled():
+        raise HTTPException(status_code=404, detail="local demo is disabled")
+    principal_id = _principal(x_principal_id)
+    try:
+        result, ack = local.run_bot_turn(
+            conversation_id, principal_id, request.bot_id, request.turn_id
+        )
+    except (LocalApiError, PermissionError) as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    return {
+        "status": result.status.value,
+        "provider": result.provider,
+        "model": result.model,
+        "error_code": result.error_code,
+        "message_id": ack.message.message_id if ack else None,
+        "sequence": ack.message.sequence if ack else None,
+        "text": result.text,
     }

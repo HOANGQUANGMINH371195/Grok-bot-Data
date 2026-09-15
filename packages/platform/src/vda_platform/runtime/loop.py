@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any
 
 from vda_platform.memory import (
     BuiltContext,
@@ -12,23 +12,8 @@ from vda_platform.memory import (
     MemoryRecord,
     build_context,
 )
+from vda_platform.runtime.model import ModelProvider
 from vda_platform.tools import ToolContext, ToolDenied, ToolRegistry, ToolValidationError
-
-
-class ModelToolCall(Protocol):
-    tool_id: str
-    payload: dict[str, object]
-
-
-class ModelResponse(Protocol):
-    text: str
-    tool_calls: tuple[ModelToolCall, ...]
-    provider: str
-    model: str
-
-
-class ModelProvider(Protocol):
-    def complete(self, *, context: tuple[str, ...], tool_ids: tuple[str, ...]) -> ModelResponse: ...
 
 
 class TurnStatus(StrEnum):

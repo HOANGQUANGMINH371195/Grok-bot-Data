@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal
+
+from vda_platform.runtime.model import ModelResponse, ToolCall
 
 
 class ProviderError(RuntimeError):
@@ -9,22 +10,6 @@ class ProviderError(RuntimeError):
 
 
 FailureMode = Literal["timeout", "rate_limit", "malformed_tool_call"]
-
-
-@dataclass(frozen=True)
-class ToolCall:
-    tool_id: str
-    payload: dict[str, object]
-
-
-@dataclass(frozen=True)
-class ModelResponse:
-    text: str
-    tool_calls: tuple[ToolCall, ...] = ()
-    provider: str = "fake"
-    model: str = "fake-grounded-v1"
-    usage_input_tokens: int = 0
-    usage_output_tokens: int = 0
 
 
 class FakeModelProvider:

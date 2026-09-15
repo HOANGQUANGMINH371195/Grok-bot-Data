@@ -5,8 +5,7 @@ from dataclasses import dataclass
 
 import httpx
 from pydantic import SecretStr
-
-from vda_adapters.fake_model import ModelResponse, ToolCall
+from vda_platform.runtime.model import ModelResponse, ToolCall
 
 
 class ProviderProtocolError(RuntimeError):

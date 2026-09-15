@@ -50,3 +50,15 @@ def test_inactive_member_cannot_read_after_leave_or_send() -> None:
         state.visible_messages("human-1")
     with pytest.raises(PermissionError, match="active member"):
         outbox.append_human_message("human-1", "client-2", "after leave")
+
+
+def test_bot_message_uses_same_durable_event_sequence_and_is_idempotent() -> None:
+    state = ConversationState("room-4")
+    state.add_member("human-1")
+    state.add_member("bot-1")
+    outbox = ConversationOutbox("workspace-1", state)
+    first = outbox.append_bot_message("bot-1", "turn-1:response", "verified answer")
+    retry = outbox.append_bot_message("bot-1", "turn-1:response", "verified answer")
+    assert first.bot_dispatch == "completed"
+    assert retry.event.event_id == first.event.event_id
+    assert len(outbox.events) == 1

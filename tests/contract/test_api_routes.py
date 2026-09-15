@@ -39,3 +39,23 @@ def test_local_demo_routes_require_principal_and_round_trip_messages(monkeypatch
     )
     assert read.status_code == 200
     assert read.json()["messages"][0]["body"] == "hello"
+
+
+def test_local_bot_turn_is_guarded_and_returns_durable_message(monkeypatch) -> None:
+    monkeypatch.setenv("VDA_LOCAL_DEMO", "true")
+    client = TestClient(app)
+    conversation_id = "route-bot-contract"
+    created = client.post(
+        "/v1/local/workspaces/w/conversations",
+        headers={"X-Principal-Id": "human"},
+        json={"conversation_id": conversation_id, "member_ids": ["human", "bot-1"]},
+    )
+    assert created.status_code == 201
+    turn = client.post(
+        f"/v1/local/conversations/{conversation_id}/bot-turn",
+        headers={"X-Principal-Id": "human"},
+        json={"bot_id": "bot-1", "turn_id": "turn-route-1"},
+    )
+    assert turn.status_code == 201
+    assert turn.json()["status"] == "ok"
+    assert turn.json()["message_id"]

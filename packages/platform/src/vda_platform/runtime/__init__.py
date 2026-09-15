@@ -2,6 +2,7 @@
 
 from .loop import BotRuntime, BotTurn, ModelProvider, ToolResult, TurnStatus
 from .mailbox import Handoff, Mailbox, MailboxError, MailboxMessage
+from .model import ModelResponse, ToolCall
 from .runs import FenceError, InvalidRunTransition, Run, RunLedger, RunState
 
 __all__ = [
@@ -14,9 +15,11 @@ __all__ = [
     "MailboxError",
     "MailboxMessage",
     "ModelProvider",
+    "ModelResponse",
     "Run",
     "RunLedger",
     "RunState",
     "ToolResult",
+    "ToolCall",
     "TurnStatus",
 ]

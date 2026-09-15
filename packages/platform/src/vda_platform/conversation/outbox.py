@@ -65,3 +65,25 @@ class ConversationOutbox:
             self._bot_quota -= 1
         self._dispatch_outcomes[message.message_id] = dispatch
         return MessageAck(message, dispatch, event)
+
+    def append_bot_message(self, sender_id: str, client_message_id: str, body: str) -> MessageAck:
+        """Commit a bot response after its run has passed runtime policy."""
+        existing = self.conversation.idempotent_message(sender_id, client_message_id)
+        message = self.conversation.append_message(sender_id, client_message_id, body)
+        if existing is not None:
+            event = next(
+                event for event in self._events
+                if event.payload.get("message_id") == existing.message_id
+            )
+            return MessageAck(message, self._dispatch_outcomes[existing.message_id], event)
+        event = OutboxEvent(
+            event_id=f"{self.workspace_id}:{self.conversation.conversation_id}:{self.conversation.event_sequence}",
+            event_type="message.created",
+            workspace_id=self.workspace_id,
+            conversation_id=self.conversation.conversation_id,
+            event_sequence=self.conversation.event_sequence,
+            payload={"message_id": message.message_id, "sender_id": sender_id},
+        )
+        self._events.append(event)
+        self._dispatch_outcomes[message.message_id] = "completed"
+        return MessageAck(message, "completed", event)
