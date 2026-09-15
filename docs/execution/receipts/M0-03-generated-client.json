@@ -1,0 +1,41 @@
+{
+  "task_id": "M0-03",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Core/Web consumer review",
+  "git_commit": "7957ed0f40e350f2ced74dffa2d85b1c5d489154",
+  "image_config_fixture_versions": {
+    "openapi": "3.1/v1",
+    "tools": "44/v1",
+    "generated_client": "typed-fetch-v1",
+    "node": "24.18.0",
+    "typescript": "5.7.x"
+  },
+  "commands": [
+    {"command": "make contracts-check", "exit_code": 0},
+    {"command": "uv run python -c 'import yaml; yaml.safe_load(open(\"packages/contracts/openapi/v1.yaml\"))'", "exit_code": 0},
+    {"command": "make lint", "exit_code": 0},
+    {"command": "make typecheck", "exit_code": 0}
+  ],
+  "environment": "local; static OpenAPI/generated TypeScript contract validation and fake fetch smoke; no cloud/provider/runtime calls",
+  "started_at": "2026-09-15T16:22:00-04:00",
+  "ended_at": "2026-09-15T16:26:00-04:00",
+  "exit_codes": [0, 0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "packages/contracts/openapi/v1.yaml", "sha256": "6b810c810b9dd46d4fd8bf092b89ca53e2cf4657992e93a353ce4608af3ba071"},
+    {"path_or_uri": "packages/contracts/generated/ts/api.ts", "sha256": "c17b36150e8ea241bc356c33b4dc442fa549c8d2a311910e836ca465d23699d5"},
+    {"path_or_uri": "packages/contracts/generated/ts/index.ts", "sha256": "8cf3a094b55587dc78a5f65d20efbc008f5b19048540e9de3fbf81cc8947b345"},
+    {"path_or_uri": "packages/contracts/generated/ts/tool_ids.ts", "sha256": "e31f149fc6c340e13626504730ab8b3a7678096d3ca30e878e588b5f809675f5"},
+    {"path_or_uri": "packages/contracts/generated/ts/package.json", "sha256": "b42a54fe1fae5af7976c34bfa78b02f8b4c9a2bfa73603b0c2a3c69c1dfb6c97"},
+    {"path_or_uri": "scripts/contracts-check.mjs", "sha256": "8f9a287af79328b5978c268ec266d10a3f9385e6af4a8f7b1934749ef6c231e6"},
+    {"path_or_uri": "scripts/contracts-ts-check.mjs", "sha256": "608a5a60460b66b59e68cf38fc8d6a116a9af7e13e2aa111816eca2d5dd84960"},
+    {"path_or_uri": "scripts/contracts-client-smoke.mjs", "sha256": "f5285fb34e8dbf458a26c7fd940172c1de1b19a56f31cbe6833a5b38a16d2f14"},
+    {"path_or_uri": "Makefile", "sha256": "f939789c1e0f0bd243bbb0a363ea9293b2cc58214a37e2e146eaf1490853baa6"}
+  ],
+  "limitations": [
+    "Adds typed request/response/event/protocol models and a fetch client with encoded path parameters and sanitized typed errors; response schemas are now represented in OpenAPI.",
+    "M0-03 remains BLOCKED until Core/Web consumers review the shared contract, generated client integration is accepted, and production OIDC/error/event schemas are signed off.",
+    "The client smoke uses a deterministic fake fetch and does not claim a live authenticated deployment."
+  ]
+}
