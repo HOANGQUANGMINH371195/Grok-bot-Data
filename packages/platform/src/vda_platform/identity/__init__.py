@@ -10,6 +10,7 @@ from .directory import (
     Workspace,
     WorkspaceRole,
 )
+from .sessions import Session, SessionCookie, SessionError, SessionManager
 
 __all__ = [
     "IdentityDirectory",
@@ -20,4 +21,8 @@ __all__ = [
     "ResourceGrant",
     "Workspace",
     "WorkspaceRole",
+    "Session",
+    "SessionCookie",
+    "SessionError",
+    "SessionManager",
 ]
