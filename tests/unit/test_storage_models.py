@@ -1,5 +1,5 @@
 from sqlalchemy import UniqueConstraint
-from vda_platform.storage import ConversationMember, Message
+from vda_platform.storage import ConversationMember, Message, ResourceGrant
 
 
 def test_storage_models_encode_message_and_membership_idempotency_constraints() -> None:
@@ -22,3 +22,8 @@ def test_storage_models_encode_message_and_membership_idempotency_constraints() 
     )
     assert member_constraints
     assert message_constraints
+
+
+def test_resource_grant_model_is_tenant_and_principal_scoped() -> None:
+    primary_keys = {column.name for column in ResourceGrant.__table__.primary_key.columns}
+    assert primary_keys == {"workspace_id", "resource_type", "resource_id", "principal_id"}

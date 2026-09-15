@@ -26,6 +26,48 @@ class Workspace(Base):
     conversations: Mapped[list[Conversation]] = relationship(back_populates="workspace")
 
 
+class Principal(Base):
+    __tablename__ = "principals"
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    principal_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class WorkspaceMembership(Base):
+    __tablename__ = "workspace_memberships"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    principal_id: Mapped[str] = mapped_column(ForeignKey("principals.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    left_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ResourceGrant(Base):
+    __tablename__ = "resource_grants"
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), primary_key=True)
+    resource_type: Mapped[str] = mapped_column(String(64), primary_key=True)
+    resource_id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    principal_id: Mapped[str] = mapped_column(ForeignKey("principals.id"), primary_key=True)
+    can_read: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    can_write: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    policy_generation: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class SessionRecord(Base):
+    __tablename__ = "sessions"
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    principal_id: Mapped[str] = mapped_column(ForeignKey("principals.id"), nullable=False)
+    issuer: Mapped[str] = mapped_column(String(512), nullable=False)
+    subject: Mapped[str] = mapped_column(String(512), nullable=False)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
     id: Mapped[str] = mapped_column(String(256), primary_key=True)
