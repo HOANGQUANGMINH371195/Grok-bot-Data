@@ -1,0 +1,41 @@
+{
+  "task_id": "M1-04",
+  "baseline_sha256": "83e925b6817274cf937d22a0d69b3f9b3ec3fcadffaff32734c5028f44292aad",
+  "status": "BLOCKED",
+  "owner": "Codex",
+  "reviewer": "pending Data/Core/Web review",
+  "git_commit": "deae309d41aeb11709b0a9bc91cb93877134ecba",
+  "image_config_fixture_versions": {
+    "python": "3.13.14",
+    "vite": "6.4.3",
+    "source_registry": "v1",
+    "profile_method": "profile-v1",
+    "fixture": "sales_small.csv/v1"
+  },
+  "commands": [
+    {"command": "node scripts/verify-implement.mjs", "exit_code": 0},
+    {"command": "uv run python -m pytest tests/unit/test_source_registry.py tests/unit/test_api_application.py tests/contract/test_api_routes.py", "exit_code": 0},
+    {"command": "uv run python -m ruff check services/api/src/vda_api/application.py services/api/src/vda_api/main.py packages/data_profiling/src/vda_data/ingestion/sources.py tests/unit/test_api_application.py tests/unit/test_source_registry.py tests/contract/test_api_routes.py", "exit_code": 0},
+    {"command": "make contracts-check", "exit_code": 0},
+    {"command": "corepack pnpm --filter @vda-agent/web typecheck && corepack pnpm --filter @vda-agent/web exec eslint . && corepack pnpm --filter @vda-agent/web build", "exit_code": 0},
+    {"command": "VDA_LOCAL_DEMO=true local API plus Vite proxy upload/profile smoke using tests/fixtures/data/sales_small.csv", "exit_code": 0}
+  ],
+  "environment": "loopback local API and Vite; in-memory object-store port; synthetic local principal; no cloud, S3 credentials, live provider or database calls",
+  "started_at": "2026-09-15T23:38:00-04:00",
+  "ended_at": "2026-09-15T23:53:42-04:00",
+  "exit_codes": [0, 0, 0, 0, 0, 0],
+  "artifacts": [
+    {"path_or_uri": "services/api/src/vda_api/application.py", "sha256": "fefe5c6e0722358b371856545b253fe7f2925ef87910d320351ff15740f6cfd6"},
+    {"path_or_uri": "services/api/src/vda_api/main.py", "sha256": "dd818a2a4bc9112334e16790a22b224a5dce7fb2549bcbff4972b24218093749"},
+    {"path_or_uri": "packages/data_profiling/src/vda_data/ingestion/sources.py", "sha256": "d5c1d6d9a6ff168407c46b7f4d838624bca15f7ec3f30ea6ff0d7f382e1f8214"},
+    {"path_or_uri": "packages/contracts/openapi/v1.yaml", "sha256": "ae6a5b01cf4b5639b7bd0a87334dfc0d2f5415f8a40fec8dc2b44cbbe905f675"},
+    {"path_or_uri": "apps/web/src/main.tsx", "sha256": "6a1bd8c32dd445d671caaf2bce2c4e462bc25ac45cf0dc9bc6841ed744f9ba2c"},
+    {"path_or_uri": "tests/contract/test_api_routes.py", "sha256": "9fc7aa023c4f7007472d5a34823c708b413a3daa7a64630833fc90fb65ab416e"},
+    {"path_or_uri": "tests/unit/test_source_registry.py", "sha256": "28ba33b2073ad4a04dd1da548c8c1b96b716f2e211bcb7e0cd7d44c93fea678b"}
+  ],
+  "limitations": [
+    "The local slice verifies upload admission, source hash pinning, immutable artifact reuse, aggregate-only profile summaries and a browser-facing proxy flow; it is not a production persistence or job execution path.",
+    "M1-01 authenticated workspace/resource grants, signed staging/promotion to versioned S3, PostgreSQL persistence, durable compute worker/job integration and independent Data/QA review remain incomplete.",
+    "Evidence is explicitly unapproved and not an Official execution; no AWS provisioning or live model/provider call occurred."
+  ]
+}
