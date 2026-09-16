@@ -1,40 +1,322 @@
-import React from 'react';
+import { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import {
+  VdaApiClient,
+  VdaApiError,
+  type ProfileCreated,
+} from '../../../packages/contracts/generated/ts/api';
 import './styles.css';
 
-type Message = { id: number; sender: string; body: string; bot?: boolean };
+const WORKSPACE_ID = 'sales';
+const PRINCIPAL_ID = 'minh-local';
+const MAX_UPLOAD_BYTES = 256 * 1024 * 1024;
+
+type Phase = 'idle' | 'uploading' | 'profiling' | 'completed' | 'failed';
+
+type Activity = {
+  id: string;
+  title: string;
+  detail: string;
+  tone: 'neutral' | 'running' | 'success' | 'error';
+};
 
 function App() {
-  const [draft, setDraft] = React.useState('');
-  const [messages, setMessages] = React.useState<Message[]>([
-    { id: 1, sender: 'Minh', body: 'Profile the January sales file and show quality issues.' },
-    { id: 2, sender: 'DataSteward', body: 'I can import and profile the approved source. I will ask before metadata decisions.', bot: true },
-  ]);
-  const send = () => {
-    const body = draft.trim();
-    if (!body) return;
-    setMessages((current) => [...current, { id: Date.now(), sender: 'Minh', body }]);
-    setDraft('');
+  const api = useMemo(() => new VdaApiClient(''), []);
+  const [file, setFile] = useState<File | null>(null);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [profile, setProfile] = useState<ProfileCreated | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
+
+  const datasetId = file ? toDatasetId(file.name) : 'dataset';
+  const profileSource = async () => {
+    if (!file) {
+      setError('Select a CSV or flat Parquet source.');
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError('The selected source exceeds the 256 MiB R1 input limit.');
+      return;
+    }
+    if (!isSupportedFile(file)) {
+      setError('Only CSV and flat Parquet sources are supported.');
+      return;
+    }
+
+    setError(null);
+    setProfile(null);
+    setPhase('uploading');
+    setActivities([
+      {
+        id: 'uploading',
+        title: 'Artifact admission',
+        detail: `${file.name} is being checked and pinned as an immutable source.`,
+        tone: 'running',
+      },
+    ]);
+
+    try {
+      await api.createDataset(WORKSPACE_ID, PRINCIPAL_ID, { dataset_id: datasetId });
+      const artifact = await api.uploadDataset(
+        WORKSPACE_ID,
+        datasetId,
+        crypto.randomUUID(),
+        PRINCIPAL_ID,
+        file.name,
+        file,
+      );
+      setPhase('profiling');
+      setActivities([
+        {
+          id: 'artifact-ready',
+          title: 'Artifact ready',
+          detail: `${artifact.row_count.toLocaleString()} rows, ${artifact.headers.length} columns, SHA-256 ${shortHash(artifact.source_sha256)}.`,
+          tone: 'success',
+        },
+        {
+          id: 'profiling',
+          title: 'Deterministic profile',
+          detail: 'Computing aggregate metrics from the immutable artifact.',
+          tone: 'running',
+        },
+      ]);
+      const completed = await api.profileDataset(WORKSPACE_ID, datasetId, PRINCIPAL_ID, {
+        artifact_id: artifact.artifact_id,
+      });
+      setProfile(completed);
+      setPhase('completed');
+      setActivities([
+        {
+          id: 'artifact-ready',
+          title: 'Artifact ready',
+          detail: `${artifact.row_count.toLocaleString()} rows, ${artifact.headers.length} columns, SHA-256 ${shortHash(artifact.source_sha256)}.`,
+          tone: 'success',
+        },
+        {
+          id: 'profile-completed',
+          title: 'Profile completed',
+          detail: `${completed.column_count} columns profiled with ${completed.method_version}.`,
+          tone: 'success',
+        },
+      ]);
+    } catch (reason) {
+      const message = apiErrorMessage(reason);
+      setError(message);
+      setPhase('failed');
+      setActivities((current) => [
+        ...current.filter((activity) => activity.tone !== 'running'),
+        { id: 'failed', title: 'Profile failed', detail: message, tone: 'error' },
+      ]);
+    }
   };
-  return <div className="app-shell">
-    <aside className="sidebar">
-      <div className="brand">VDaAgent</div>
-      <div className="workspace">Workspace / Sales</div>
-      <button className="room active"># sales-profiling <span>3</span></button>
-      <button className="room"># data-quality</button>
-      <button className="room">DM · DataAnalyst</button>
-      <div className="sidebar-bottom">R1 local shell<br /><small>OIDC/API integration follows M1.</small></div>
-    </aside>
-    <main className="chat-pane">
-      <header className="chat-header"><div><strong># sales-profiling</strong><small>3 humans · 3 bots · workspace-scoped</small></div><button>Observatory</button></header>
-      <div className="bot-strip"><span className="bot-chip assistant">DataAssistant</span><span className="bot-chip steward">DataSteward</span><span className="bot-chip analyst">DataAnalyst</span><span className="bot-chip writer">ReportWriter</span></div>
-      <section className="messages" aria-label="conversation">
-        {messages.map((message) => <article className={`message ${message.bot ? 'bot-message' : ''}`} key={message.id}><div className="avatar">{message.sender.slice(0, 1)}</div><div><div className="sender">{message.sender}{message.bot && <span className="bot-label">BOT</span>}</div><p>{message.body}</p>{message.bot && <div className="evidence-card"><strong>Profile job queued</strong><span>source: sales_january.csv · run: pending</span><span>evidence will appear after approved compute</span></div>}</div></article>)}
-      </section>
-      <div className="composer"><textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send(); } }} placeholder="Message the room or @mention a bot…" aria-label="message" /><button onClick={send}>Send</button></div>
-    </main>
-    <aside className="inspector"><h2>Data & Observatory</h2><section><h3>Dataset</h3><div className="dataset-card"><strong>sales_january.csv</strong><span>immutable source · ready</span><span>3 rows · 5 columns · 1 PII field</span></div></section><section><h3>Run activity</h3><ol className="timeline"><li><b>Message committed</b><small>human ACK · event #12</small></li><li><b>DataSteward</b><small>profile.start · queued</small></li><li><b>Evidence</b><small>waiting for compute result</small></li></ol></section><section className="privacy-note">Only metadata is shown in Observatory. Raw prompts, secrets and private memory are never captured.</section></aside>
-  </div>;
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar" aria-label="workspace navigation">
+        <div className="brand">VDaAgent</div>
+        <div className="workspace-label">Sales workspace</div>
+        <nav className="room-list" aria-label="rooms">
+          <button className="room active" type="button">Sales profiling</button>
+          <button className="room" type="button">Data quality</button>
+          <button className="room" type="button">Reports</button>
+        </nav>
+        <div className="sidebar-note">Local demo</div>
+      </aside>
+
+      <main className="workspace-main">
+        <header className="workspace-header">
+          <div>
+            <p className="eyebrow">DataSteward</p>
+            <h1>Sales profiling</h1>
+            <p className="header-meta">Workspace-scoped artifact and profile run</p>
+          </div>
+          <span className={`run-status ${phase}`}>{phaseLabel(phase)}</span>
+        </header>
+
+        <section className="upload-surface" aria-labelledby="upload-title">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Source</p>
+              <h2 id="upload-title">Upload and profile</h2>
+            </div>
+            <span className="bound">256 MiB max</span>
+          </div>
+          <div className="upload-controls">
+            <label className="file-picker">
+              <span>Choose file</span>
+              <input
+                type="file"
+                accept=".csv,.parquet,text/csv,application/vnd.apache.parquet"
+                onChange={(event) => {
+                  const selected = event.target.files?.[0] ?? null;
+                  setFile(selected);
+                  setProfile(null);
+                  setError(null);
+                  setPhase('idle');
+                  setActivities([]);
+                }}
+              />
+            </label>
+            <div className="file-summary" aria-live="polite">
+              {file ? (
+                <>
+                  <strong>{file.name}</strong>
+                  <span>
+                    {formatBytes(file.size)} | {file.name.toLowerCase().endsWith('.parquet') ? 'Parquet' : 'CSV'}
+                  </span>
+                </>
+              ) : (
+                <span>No source selected</span>
+              )}
+            </div>
+            <button
+              className="primary-action"
+              type="button"
+              onClick={profileSource}
+              disabled={!file || phase === 'uploading' || phase === 'profiling'}
+            >
+              {phase === 'uploading' ? 'Uploading' : phase === 'profiling' ? 'Profiling' : 'Profile source'}
+            </button>
+          </div>
+          {error && <p className="error-message" role="alert">{error}</p>}
+        </section>
+
+        <section className="activity-surface" aria-labelledby="activity-title">
+          <div className="section-heading compact-heading">
+            <div>
+              <p className="eyebrow">Run activity</p>
+              <h2 id="activity-title">Profile lifecycle</h2>
+            </div>
+          </div>
+          {activities.length ? (
+            <ol className="activity-list">
+              {activities.map((activity) => (
+                <li className={`activity ${activity.tone}`} key={activity.id}>
+                  <span className="activity-marker" aria-hidden="true" />
+                  <div>
+                    <strong>{activity.title}</strong>
+                    <p>{activity.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="empty-state">No profile run is active.</p>
+          )}
+        </section>
+      </main>
+
+      <aside className="inspector" aria-label="profile inspector">
+        <div className="inspector-heading">
+          <p className="eyebrow">Evidence</p>
+          <h2>Profile inspector</h2>
+        </div>
+        {profile ? <ProfileInspector profile={profile} /> : <EmptyInspector file={file} />}
+      </aside>
+    </div>
+  );
 }
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+function EmptyInspector({ file }: { file: File | null }) {
+  return (
+    <div className="empty-inspector">
+      <strong>{file ? file.name : 'No immutable artifact'}</strong>
+      <p>
+        {file
+          ? 'Run the profile to create an evidence-bound summary.'
+          : 'Artifact metadata and aggregate profile metrics appear here.'}
+      </p>
+    </div>
+  );
+}
+
+function ProfileInspector({ profile }: { profile: ProfileCreated }) {
+  const piiSignals = profile.columns.reduce(
+    (total, column) => total + Object.values(column.pii_signal_counts).reduce((sum, count) => sum + count, 0),
+    0,
+  );
+  return (
+    <>
+      <section className="profile-summary" aria-label="profile summary">
+        <dl>
+          <div><dt>Rows</dt><dd>{profile.row_count.toLocaleString()}</dd></div>
+          <div><dt>Columns</dt><dd>{profile.column_count}</dd></div>
+          <div><dt>PII signals</dt><dd>{piiSignals}</dd></div>
+        </dl>
+        <p className="artifact-hash">SHA-256 {shortHash(profile.source_sha256)}</p>
+      </section>
+      <section className="evidence-note">
+        <strong>Profile evidence</strong>
+        <span>{profile.evidence.method_version}</span>
+        <p>{profile.evidence.limitations[0]}</p>
+      </section>
+      <section className="column-section" aria-labelledby="column-title">
+        <div className="column-heading">
+          <h3 id="column-title">Columns</h3>
+          <span>{profile.columns.length}</span>
+        </div>
+        <div className="column-list">
+          {profile.columns.map((column) => {
+            const pii = Object.values(column.pii_signal_counts).reduce(
+              (sum, count) => sum + count,
+              0,
+            );
+            return (
+              <article className="column-row" key={column.name}>
+                <div className="column-name">
+                  <strong>{column.name}</strong>
+                  <span>{column.physical_type}</span>
+                </div>
+                <dl>
+                  <div><dt>Null</dt><dd>{column.null_count}</dd></div>
+                  <div><dt>Distinct</dt><dd>{column.distinct_non_null_count}</dd></div>
+                  <div><dt>PII</dt><dd>{pii}</dd></div>
+                </dl>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function toDatasetId(filename: string) {
+  const withoutExtension = filename.replace(/\.(csv|parquet)$/i, '');
+  const normalized = withoutExtension
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return (normalized || 'dataset').slice(0, 128);
+}
+
+function isSupportedFile(file: File) {
+  return /\.(csv|parquet)$/i.test(file.name);
+}
+
+function phaseLabel(phase: Phase) {
+  return {
+    idle: 'Ready',
+    uploading: 'Uploading',
+    profiling: 'Profiling',
+    completed: 'Completed',
+    failed: 'Failed',
+  }[phase];
+}
+
+function shortHash(value: string) {
+  return `${value.slice(0, 12)}...${value.slice(-8)}`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function apiErrorMessage(reason: unknown) {
+  if (reason instanceof VdaApiError) return reason.message;
+  return 'The local profile service is unavailable.';
+}
+
+createRoot(document.getElementById('root')!).render(<App />);

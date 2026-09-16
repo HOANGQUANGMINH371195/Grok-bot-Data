@@ -1,3 +1,5 @@
+import hashlib
+
 from fastapi.testclient import TestClient
 from vda_api.main import app
 
@@ -93,3 +95,75 @@ def test_local_events_support_cursor_reconnect(monkeypatch) -> None:
         headers={"X-Principal-Id": "human-events"},
     )
     assert [event["event_sequence"] for event in replay.json()["events"]] == [2]
+
+
+def test_local_dataset_profile_is_hash_pinned_and_does_not_return_raw_pii(monkeypatch) -> None:
+    monkeypatch.setenv("VDA_LOCAL_DEMO", "true")
+    client = TestClient(app)
+    headers = {"X-Principal-Id": "dataset-owner"}
+    workspace_id = "dataset-workspace-contract"
+    dataset_id = "sales-profile-contract"
+    created = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets",
+        headers=headers,
+        json={"dataset_id": dataset_id},
+    )
+    assert created.status_code == 201
+
+    payload = b"amount,email\n10.5,alice@example.com\n,not-an-email\n"
+    artifact = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/uploads/retryable-upload",
+        headers={
+            **headers,
+            "X-File-Name": "sales.csv",
+            "X-Content-SHA256": hashlib.sha256(payload).hexdigest(),
+            "Content-Type": "text/csv",
+        },
+        content=payload,
+    )
+    assert artifact.status_code == 201
+    assert artifact.json()["dataset_id"] == dataset_id
+    repeated = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/uploads/retryable-upload",
+        headers={
+            **headers,
+            "X-File-Name": "sales.csv",
+            "X-Content-SHA256": hashlib.sha256(payload).hexdigest(),
+            "Content-Type": "text/csv",
+        },
+        content=payload,
+    )
+    assert repeated.status_code == 201
+    assert repeated.json()["artifact_id"] == artifact.json()["artifact_id"]
+
+    profile = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/profiles",
+        headers=headers,
+        json={"artifact_id": artifact.json()["artifact_id"]},
+    )
+    assert profile.status_code == 201
+    body = profile.json()
+    assert body["status"] == "completed"
+    assert body["evidence"]["approved"] is False
+    assert body["source_sha256"] == hashlib.sha256(payload).hexdigest()
+    assert body["columns"][1]["pii_signal_counts"]["email"] == 1
+    assert "alice@example.com" not in profile.text
+    assert "top_values" not in profile.text
+
+    mismatched_hash = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/uploads/bad-hash",
+        headers={
+            **headers,
+            "X-File-Name": "sales.csv",
+            "X-Content-SHA256": "0" * 64,
+            "Content-Type": "text/csv",
+        },
+        content=payload,
+    )
+    assert mismatched_hash.status_code == 422
+    wrong_actor = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/profiles",
+        headers={"X-Principal-Id": "intruder"},
+        json={"artifact_id": artifact.json()["artifact_id"]},
+    )
+    assert wrong_actor.status_code == 404

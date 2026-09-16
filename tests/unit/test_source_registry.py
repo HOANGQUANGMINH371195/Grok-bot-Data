@@ -31,6 +31,25 @@ def test_upload_admits_csv_as_immutable_ready_artifact_and_is_idempotent() -> No
     with pytest.raises(SourceRegistryError, match="different payload"):
         registry.complete_upload(session.upload_id, "owner", b"id,amount\n3,99\n")
 
+    deduplicated_session = registry.begin_upload(
+        "sales", "owner", "sales.csv", upload_id="upload-2"
+    )
+    assert registry.complete_upload(deduplicated_session.upload_id, "owner", payload) == first
+    with pytest.raises(SourceRegistryError, match="different payload"):
+        registry.complete_upload(
+            deduplicated_session.upload_id, "owner", b"id,amount\n3,99\n"
+        )
+
+
+def test_begin_upload_reuses_only_the_same_session_metadata() -> None:
+    registry = SourceRegistry(InMemoryObjectStore())
+    registry.create_dataset("sales", "workspace-a", "owner")
+    first = registry.begin_upload("sales", "owner", "sales.csv", upload_id="upload-retry")
+    retry = registry.begin_upload("sales", "owner", "sales.csv", upload_id="upload-retry")
+    assert retry == first
+    with pytest.raises(SourceRegistryError, match="different metadata"):
+        registry.begin_upload("sales", "owner", "sales.parquet", upload_id="upload-retry")
+
 
 def test_upload_rejects_acl_hash_format_and_malformed_payload() -> None:
     registry = SourceRegistry(InMemoryObjectStore(), IngestionPolicy(max_file_bytes=64))

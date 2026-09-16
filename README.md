@@ -22,14 +22,14 @@ make typecheck
 corepack pnpm --filter @vda-agent/web build
 ```
 
-Run the local web shell with `corepack pnpm --filter @vda-agent/web dev`. It currently
-demonstrates the messenger/data/Observatory interaction shell with synthetic content; the
-OIDC/API integration is an M1 implementation lane.
+Run the local profiling UI with `corepack pnpm --filter @vda-agent/web dev`. With the local
+API below running, it uploads CSV/flat Parquet files, pins an immutable source and displays a
+deterministic aggregate profile. OIDC/API persistence remains an M1 implementation lane.
 
 The guarded local API contract harness can be run separately:
 
 ```bash
-VDA_LOCAL_DEMO=true PYTHONPATH=services/api/src:packages/platform/src:packages/adapters/src \
+VDA_LOCAL_DEMO=true PYTHONPATH=services/api/src:packages/platform/src:packages/adapters/src:packages/data_profiling/src \
   uv run uvicorn vda_api.main:app --reload --port 8080
 ```
 

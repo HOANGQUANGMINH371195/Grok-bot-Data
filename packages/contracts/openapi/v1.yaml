@@ -46,6 +46,125 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /v1/local/workspaces/{workspace_id}/datasets:
+    post:
+      operationId: localCreateDataset
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/WorkspaceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDatasetRequest'
+      responses:
+        '201':
+          description: In-memory local dataset created or resumed by its owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetCreated'
+        '401':
+          description: Synthetic principal header missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dataset exists but is not visible to the actor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Invalid local dataset request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/uploads/{upload_id}:
+    post:
+      operationId: localUploadDataset
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/WorkspaceId'
+        - $ref: '#/components/parameters/DatasetId'
+        - $ref: '#/components/parameters/UploadId'
+        - $ref: '#/components/parameters/FileName'
+        - $ref: '#/components/parameters/ContentSha256'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: {type: string, format: binary}
+          text/csv:
+            schema: {type: string, format: binary}
+          application/vnd.apache.parquet:
+            schema: {type: string, format: binary}
+      responses:
+        '201':
+          description: Immutable artifact admitted and ready for local profiling
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactCreated'
+        '401':
+          description: Synthetic principal header missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dataset is not visible to the actor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Upload exceeds R1 input cap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Invalid upload metadata or rejected source bytes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/profiles:
+    post:
+      operationId: localProfileDataset
+      parameters:
+        - $ref: '#/components/parameters/PrincipalId'
+        - $ref: '#/components/parameters/WorkspaceId'
+        - $ref: '#/components/parameters/DatasetId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileDatasetRequest'
+      responses:
+        '201':
+          description: Deterministic local profile over the referenced immutable artifact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileCreated'
+        '401':
+          description: Synthetic principal header missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dataset or artifact is not visible to the actor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/local/conversations/{conversation_id}/messages:
     post:
       operationId: localSendMessage
@@ -189,6 +308,38 @@ components:
         type: string
         minLength: 1
         maxLength: 256
+    DatasetId:
+      name: dataset_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+    UploadId:
+      name: upload_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    FileName:
+      name: X-File-Name
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    ContentSha256:
+      name: X-Content-SHA256
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: '^[a-f0-9]{64}$'
   schemas:
     CreateConversationRequest:
       type: object
@@ -219,6 +370,22 @@ components:
       properties:
         bot_id: {type: string, minLength: 1, maxLength: 256}
         turn_id: {type: string, minLength: 1, maxLength: 256}
+    CreateDatasetRequest:
+      type: object
+      additionalProperties: false
+      required: [dataset_id]
+      properties:
+        dataset_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+    ProfileDatasetRequest:
+      type: object
+      additionalProperties: false
+      required: [artifact_id]
+      properties:
+        artifact_id: {type: string, minLength: 1, maxLength: 256}
     ConversationCreated:
       type: object
       additionalProperties: false
@@ -226,6 +393,80 @@ components:
       properties:
         conversation_id: {type: string, minLength: 1, maxLength: 256}
         workspace_id: {type: string, minLength: 1, maxLength: 256}
+    DatasetCreated:
+      type: object
+      additionalProperties: false
+      required: [dataset_id, workspace_id]
+      properties:
+        dataset_id: {type: string, minLength: 1, maxLength: 128}
+        workspace_id: {type: string, minLength: 1, maxLength: 256}
+    ArtifactCreated:
+      type: object
+      additionalProperties: false
+      required: [artifact_id, dataset_id, workspace_id, source_sha256, object_version_id, size_bytes, format, headers, row_count, status]
+      properties:
+        artifact_id: {type: string, minLength: 1, maxLength: 256}
+        dataset_id: {type: string, minLength: 1, maxLength: 128}
+        workspace_id: {type: string, minLength: 1, maxLength: 256}
+        source_sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        object_version_id: {type: string, minLength: 1, maxLength: 256}
+        size_bytes: {type: integer, minimum: 1, maximum: 268435456}
+        format: {type: string, enum: [csv, parquet]}
+        headers:
+          type: array
+          maxItems: 200
+          items: {type: string, minLength: 1}
+        row_count: {type: integer, minimum: 0, maximum: 1000000}
+        status: {type: string, const: ready}
+    ProfileEvidence:
+      type: object
+      additionalProperties: false
+      required: [evidence_id, source_version, method_version, cell_refs, limitations, approved]
+      properties:
+        evidence_id: {type: string, minLength: 1, maxLength: 512}
+        source_version: {type: string, minLength: 1, maxLength: 256}
+        method_version: {type: string, minLength: 1, maxLength: 128}
+        cell_refs:
+          type: array
+          minItems: 1
+          items: {type: string, minLength: 1, maxLength: 256}
+        limitations:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 1000}
+        approved: {type: boolean, const: false}
+    ProfileColumn:
+      type: object
+      additionalProperties: false
+      required: [name, physical_type, non_null_count, null_count, null_rate, distinct_non_null_count, pii_signal_counts]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 1024}
+        physical_type: {type: string, enum: [numeric, numeric_nonfinite, timestamp, string, unknown]}
+        non_null_count: {type: integer, minimum: 0, maximum: 1000000}
+        null_count: {type: integer, minimum: 0, maximum: 1000000}
+        null_rate: {type: [string, 'null']}
+        distinct_non_null_count: {type: integer, minimum: 0, maximum: 1000000}
+        pii_signal_counts:
+          type: object
+          additionalProperties: {type: integer, minimum: 0, maximum: 1000000}
+    ProfileCreated:
+      type: object
+      additionalProperties: false
+      required: [profile_id, dataset_id, workspace_id, artifact_id, source_sha256, row_count, column_count, method_version, status, evidence, columns]
+      properties:
+        profile_id: {type: string, minLength: 1, maxLength: 512}
+        dataset_id: {type: string, minLength: 1, maxLength: 128}
+        workspace_id: {type: string, minLength: 1, maxLength: 256}
+        artifact_id: {type: string, minLength: 1, maxLength: 256}
+        source_sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        row_count: {type: integer, minimum: 0, maximum: 1000000}
+        column_count: {type: integer, minimum: 0, maximum: 200}
+        method_version: {type: string, minLength: 1, maxLength: 128}
+        status: {type: string, const: completed}
+        evidence: {$ref: '#/components/schemas/ProfileEvidence'}
+        columns:
+          type: array
+          maxItems: 200
+          items: {$ref: '#/components/schemas/ProfileColumn'}
     MessageAck:
       type: object
       additionalProperties: false

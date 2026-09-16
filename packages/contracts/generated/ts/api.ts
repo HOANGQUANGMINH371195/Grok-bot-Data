@@ -44,6 +44,65 @@ export interface ConversationCreated {
   workspace_id: string;
 }
 
+export interface CreateDatasetRequest {
+  dataset_id: string;
+}
+
+export interface DatasetCreated {
+  dataset_id: string;
+  workspace_id: string;
+}
+
+export interface ArtifactCreated {
+  artifact_id: string;
+  dataset_id: string;
+  workspace_id: string;
+  source_sha256: string;
+  object_version_id: string;
+  size_bytes: number;
+  format: 'csv' | 'parquet';
+  headers: string[];
+  row_count: number;
+  status: 'ready';
+}
+
+export interface ProfileDatasetRequest {
+  artifact_id: string;
+}
+
+export interface ProfileEvidence {
+  evidence_id: string;
+  source_version: string;
+  method_version: string;
+  cell_refs: string[];
+  limitations: string[];
+  approved: false;
+}
+
+export interface ProfileColumn {
+  name: string;
+  physical_type: 'numeric' | 'numeric_nonfinite' | 'timestamp' | 'string' | 'unknown';
+  non_null_count: number;
+  null_count: number;
+  null_rate: string | null;
+  distinct_non_null_count: number;
+  pii_signal_counts: Record<string, number>;
+}
+
+export interface ProfileCreated {
+  profile_id: string;
+  dataset_id: string;
+  workspace_id: string;
+  artifact_id: string;
+  source_sha256: string;
+  row_count: number;
+  column_count: number;
+  method_version: string;
+  status: 'completed';
+  evidence: ProfileEvidence;
+  columns: ProfileColumn[];
+}
+
 export interface SendMessageRequest {
   client_message_id: string;
   body: string;
@@ -136,6 +195,52 @@ export class VdaApiClient {
     );
   }
 
+  createDataset(
+    workspaceId: string,
+    principalId: string,
+    request: CreateDatasetRequest,
+  ): Promise<DatasetCreated> {
+    return this.request<DatasetCreated>(
+      `/v1/local/workspaces/${encodeURIComponent(workspaceId)}/datasets`,
+      principalId,
+      { method: 'POST', body: JSON.stringify(request) },
+    );
+  }
+
+  uploadDataset(
+    workspaceId: string,
+    datasetId: string,
+    uploadId: string,
+    principalId: string,
+    filename: string,
+    payload: Blob,
+    expectedSha256?: string,
+  ): Promise<ArtifactCreated> {
+    const headers = new Headers({
+      'Content-Type': payload.type || 'application/octet-stream',
+      'X-File-Name': filename,
+    });
+    if (expectedSha256) headers.set('X-Content-SHA256', expectedSha256);
+    return this.request<ArtifactCreated>(
+      `/v1/local/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/uploads/${encodeURIComponent(uploadId)}`,
+      principalId,
+      { method: 'POST', body: payload, headers },
+    );
+  }
+
+  profileDataset(
+    workspaceId: string,
+    datasetId: string,
+    principalId: string,
+    request: ProfileDatasetRequest,
+  ): Promise<ProfileCreated> {
+    return this.request<ProfileCreated>(
+      `/v1/local/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/profiles`,
+      principalId,
+      { method: 'POST', body: JSON.stringify(request) },
+    );
+  }
+
   sendMessage(
     conversationId: string,
     principalId: string,
@@ -179,14 +284,15 @@ export class VdaApiClient {
   }
 
   private async request<T>(path: string, principalId: string, init: RequestInit = {}): Promise<T> {
+    const headers = new Headers(init.headers);
+    headers.set('Accept', 'application/json');
+    headers.set('X-Principal-Id', principalId);
+    if (typeof init.body === 'string' && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
     const response = await this.fetcher(`${this.baseUrl}${path}`, {
       ...init,
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'X-Principal-Id': principalId,
-        ...init.headers,
-      },
+      headers,
     });
     const body: unknown = await response.json();
     if (!response.ok) {

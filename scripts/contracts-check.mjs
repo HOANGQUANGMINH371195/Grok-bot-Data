@@ -28,6 +28,9 @@ const forbidden = /(^|\.)(shell|sql|http|kubectl|secret|approve|publish)(\.|$)/i
 const errors = [];
 for (const path of [
   '/v1/local/workspaces/{workspace_id}/conversations:',
+  '/v1/local/workspaces/{workspace_id}/datasets:',
+  '/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/uploads/{upload_id}:',
+  '/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/profiles:',
   '/v1/local/conversations/{conversation_id}/messages:',
   '/v1/local/conversations/{conversation_id}/events:',
   '/v1/local/conversations/{conversation_id}/bot-turn:',
@@ -36,6 +39,13 @@ for (const path of [
 }
 for (const schema of [
   'ConversationCreated',
+  'CreateDatasetRequest',
+  'DatasetCreated',
+  'ArtifactCreated',
+  'ProfileDatasetRequest',
+  'ProfileEvidence',
+  'ProfileColumn',
+  'ProfileCreated',
   'MessageAck',
   'MessageList',
   'EventReplay',
@@ -44,7 +54,14 @@ for (const schema of [
 ]) {
   if (!openapi.includes(`${schema}:`)) errors.push(`OpenAPI schema missing ${schema}`);
 }
-for (const generatedExport of ['VdaApiClient', 'VdaApiError', 'EventEnvelope', 'BotTurnResponse']) {
+for (const generatedExport of [
+  'VdaApiClient',
+  'VdaApiError',
+  'EventEnvelope',
+  'BotTurnResponse',
+  'ArtifactCreated',
+  'ProfileCreated',
+]) {
   if (!generatedApi.includes(`export ${generatedExport.includes('Client') || generatedExport.includes('Error') ? 'class' : 'interface'} ${generatedExport}`)) {
     errors.push(`generated API client missing ${generatedExport}`);
   }

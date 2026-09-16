@@ -119,9 +119,17 @@ class SourceRegistry:
         dataset = self._dataset(dataset_id)
         if not self._grant(dataset_id, actor_id).write:
             raise SourceRegistryError("actor cannot write this dataset")
-        if upload_id in self._uploads:
-            raise SourceRegistryError("upload session already exists")
         format_name = _format_for_filename(filename)
+        existing = self._uploads.get(upload_id)
+        if existing is not None:
+            if (
+                existing.dataset_id == dataset.dataset_id
+                and existing.actor_id == actor_id
+                and existing.filename == filename
+                and existing.format == format_name
+            ):
+                return existing
+            raise SourceRegistryError("upload session already exists with different metadata")
         session = UploadSession(
             upload_id,
             dataset.dataset_id,
@@ -162,6 +170,7 @@ class SourceRegistry:
         parsed = _parse(session.format, payload, self._policy)
         existing_id = self._by_dataset_hash.get((session.dataset_id, digest))
         if existing_id is not None:
+            self._completed_uploads[upload_id] = existing_id
             return self._versions[existing_id]
         object_key = (
             f"workspaces/{session.workspace_id}/datasets/{session.dataset_id}/"

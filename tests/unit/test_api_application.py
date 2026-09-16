@@ -47,3 +47,35 @@ def test_local_application_reconnects_from_event_cursor() -> None:
     replay, new_watermark = application.read_events("events-room", "human-1", watermark)
     assert [event.payload["message_id"] for event in replay] == ["events-room:2"]
     assert new_watermark > watermark
+
+
+def test_local_application_profiles_only_immutable_actor_visible_artifacts() -> None:
+    application = LocalApplication()
+    application.create_dataset("workspace-a", "sales", "owner")
+    payload = b"amount,email\n10.5,alice@example.com\n,not-an-email\n"
+    artifact = application.upload_dataset(
+        "workspace-a", "sales", "owner", "upload-1", "sales.csv", payload
+    )
+    retry = application.upload_dataset(
+        "workspace-a", "sales", "owner", "upload-1", "sales.csv", payload
+    )
+    assert retry == artifact
+
+    profile = application.profile_dataset("workspace-a", "sales", "owner", artifact.artifact_id)
+    assert profile.artifact_id == artifact.artifact_id
+    assert profile.evidence.approved is False
+    email = next(column for column in profile.columns if column.name == "email")
+    assert email.pii_signal_counts["email"] == 1
+    assert "alice@example.com" not in repr(profile)
+    assert (
+        application.profile_dataset("workspace-a", "sales", "owner", artifact.artifact_id)
+        == profile
+    )
+
+    application.create_dataset("workspace-b", "sales", "other")
+    with pytest.raises(LocalApiError, match="not available"):
+        application.profile_dataset("workspace-b", "sales", "other", artifact.artifact_id)
+    with pytest.raises(PermissionError, match="not visible"):
+        application.upload_dataset(
+            "workspace-a", "sales", "intruder", "upload-2", "sales.csv", payload
+        )
