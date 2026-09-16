@@ -1,5 +1,11 @@
 import pytest
-from vda_api.application import LocalApiError, LocalApplication
+from vda_api.application import LocalApiError, LocalApplication, LocalProfileError
+from vda_data.profiling import ComputeLimitError
+
+
+class _FailingProfileRunner:
+    def profile(self, payload: bytes, format_name: str):
+        raise ComputeLimitError("deadline")
 
 
 def test_local_application_preserves_message_ack_and_membership_visibility() -> None:
@@ -79,3 +85,13 @@ def test_local_application_profiles_only_immutable_actor_visible_artifacts() -> 
         application.upload_dataset(
             "workspace-a", "sales", "intruder", "upload-2", "sales.csv", payload
         )
+
+
+def test_local_application_reports_compute_limits_without_disclosing_artifacts() -> None:
+    application = LocalApplication(profile_runner=_FailingProfileRunner())
+    application.create_dataset("workspace-a", "sales", "owner")
+    artifact = application.upload_dataset(
+        "workspace-a", "sales", "owner", "upload-1", "sales.csv", b"id\n1\n"
+    )
+    with pytest.raises(LocalProfileError, match="compute limits"):
+        application.profile_dataset("workspace-a", "sales", "owner", artifact.artifact_id)

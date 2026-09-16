@@ -1,7 +1,14 @@
 import hashlib
 
 from fastapi.testclient import TestClient
+from vda_api import main
 from vda_api.main import app
+from vda_data.profiling import ComputeLimitError
+
+
+class _FailingProfileRunner:
+    def profile(self, payload: bytes, format_name: str):
+        raise ComputeLimitError("deadline")
 
 
 def test_local_demo_routes_are_disabled_by_default(monkeypatch) -> None:
@@ -167,3 +174,33 @@ def test_local_dataset_profile_is_hash_pinned_and_does_not_return_raw_pii(monkey
         json={"artifact_id": artifact.json()["artifact_id"]},
     )
     assert wrong_actor.status_code == 404
+
+
+def test_local_profile_compute_limit_is_not_mapped_to_artifact_not_found(monkeypatch) -> None:
+    monkeypatch.setenv("VDA_LOCAL_DEMO", "true")
+    monkeypatch.setattr(main.local, "_profile_runner", _FailingProfileRunner())
+    client = TestClient(app)
+    headers = {"X-Principal-Id": "profile-limit-owner"}
+    workspace_id = "profile-limit-workspace"
+    dataset_id = "profile-limit-dataset"
+    assert (
+        client.post(
+            f"/v1/local/workspaces/{workspace_id}/datasets",
+            headers=headers,
+            json={"dataset_id": dataset_id},
+        ).status_code
+        == 201
+    )
+    artifact = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/uploads/limit-upload",
+        headers={**headers, "X-File-Name": "sales.csv", "Content-Type": "text/csv"},
+        content=b"id\n1\n",
+    )
+    assert artifact.status_code == 201
+    profile = client.post(
+        f"/v1/local/workspaces/{workspace_id}/datasets/{dataset_id}/profiles",
+        headers=headers,
+        json={"artifact_id": artifact.json()["artifact_id"]},
+    )
+    assert profile.status_code == 422
+    assert profile.json()["detail"] == "profile exceeded local compute limits"

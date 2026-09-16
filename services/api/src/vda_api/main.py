@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 from vda_data.ingestion import ArtifactVersion, SourceRegistryError
 
-from .application import LocalApiError, LocalApplication, LocalProfile
+from .application import LocalApiError, LocalApplication, LocalProfile, LocalProfileError
 
 app = FastAPI(title="VDaAgent API", version="0.1.0")
 local = LocalApplication()
@@ -297,6 +297,8 @@ def profile_local_dataset(
     principal_id = _principal(x_principal_id)
     try:
         profile = local.profile_dataset(workspace_id, dataset_id, principal_id, request.artifact_id)
+    except LocalProfileError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except (LocalApiError, PermissionError, SourceRegistryError) as exc:
         raise _local_resource_not_found() from exc
     return _profile_response(profile)

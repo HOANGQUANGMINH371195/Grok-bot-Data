@@ -3,13 +3,18 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from vda_adapters.fake_model import FakeModelProvider
 from vda_adapters.s3 import InMemoryObjectStore, ObjectStoreError
 from vda_data.evidence import EvidenceRef
 from vda_data.ingestion import ArtifactVersion, IngestionPolicy, SourceRegistry, SourceRegistryError
-from vda_data.profiling import ProfileResult, profile_csv, profile_parquet
+from vda_data.profiling import (
+    ComputeError,
+    ComputeLimitError,
+    ComputeSupervisor,
+    ProfileResult,
+)
 from vda_platform.conversation import ConversationOutbox, ConversationState, MessageAck
 from vda_platform.runtime import BotRuntime, BotTurn
 from vda_platform.tools import ToolRegistry
@@ -17,6 +22,14 @@ from vda_platform.tools import ToolRegistry
 
 class LocalApiError(ValueError):
     """Local demo command failed its workspace or membership contract."""
+
+
+class LocalProfileError(LocalApiError):
+    """A visible artifact could not be profiled within local compute controls."""
+
+
+class ProfileRunner(Protocol):
+    def profile(self, payload: bytes, format_name: str) -> ProfileResult: ...
 
 
 @dataclass
@@ -63,10 +76,11 @@ class LocalProfile:
 class LocalApplication:
     """Contract harness for the local demo; production uses DB-backed repositories."""
 
-    def __init__(self) -> None:
+    def __init__(self, profile_runner: ProfileRunner | None = None) -> None:
         self._conversations: dict[str, LocalConversation] = {}
         self._object_store = InMemoryObjectStore()
         self._sources = SourceRegistry(self._object_store)
+        self._profile_runner = profile_runner or ComputeSupervisor()
         self._datasets: dict[tuple[str, str], LocalDataset] = {}
         self._profiles: dict[str, LocalProfile] = {}
         root = Path(__file__).resolve().parents[4]
@@ -141,13 +155,14 @@ class LocalApplication:
             source = self._object_store.get(artifact.object_key, artifact.object_version_id)
         except ObjectStoreError as exc:
             raise LocalApiError("artifact source is unavailable") from exc
-        result = (
-            profile_csv(source.payload)
-            if artifact.format == "csv"
-            else profile_parquet(source.payload)
-        )
+        try:
+            result = self._profile_runner.profile(source.payload, artifact.format)
+        except ComputeLimitError as exc:
+            raise LocalProfileError("profile exceeded local compute limits") from exc
+        except ComputeError as exc:
+            raise LocalProfileError("profile compute failed") from exc
         if result.source_sha256 != artifact.source_sha256:
-            raise LocalApiError("profile source integrity check failed")
+            raise LocalProfileError("profile source integrity check failed")
         profile = _local_profile(dataset, artifact, result)
         self._profiles[artifact.artifact_id] = profile
         return profile
